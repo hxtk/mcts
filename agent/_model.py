@@ -147,7 +147,13 @@ def training_batch(
     logging.info('Generating training set...')
     n = -1
     for _ in tqdm.trange(num_games):
-        player = _agent.TrainingPlayer(g, model, limit=node_count)
+        player = _agent.TrainingPlayer(
+            g,
+            model,
+            limit=node_count,
+            temperature=1.0,
+            alpha=0.4,
+        )
         players = [player for _ in range(g.eval_shape()[0])]
         outcome = game.play_classical(g, players)
 

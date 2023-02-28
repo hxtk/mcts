@@ -1,5 +1,6 @@
 import dataclasses
 import datetime
+from typing import Callable
 from typing import List
 from typing import MutableMapping
 from typing import Optional
@@ -187,6 +188,7 @@ def _build_tree(
     model: tf.keras.Model,
     state: game.State,
     limit: Union[LimitCondition, int, datetime.timedelta],
+    noise: Optional[Callable[[], game.Move]] = None
 ) -> Tuple[List[int], List[float]]:
     root = TreeNode.build(
         g=g,
@@ -195,6 +197,7 @@ def _build_tree(
         state=state,
         p=1.0,
     )
+    root.policy = root.policy + noise().reshape(root.policy.shape)
     root.n = 1
 
     if isinstance(limit, int):
@@ -217,10 +220,15 @@ def training_choose_move(
     model: tf.keras.Model,
     state: game.State,
     limit: Union[int, datetime.timedelta],
-    temperature: float,
     mask: game.Move,
+    temperature: float,
+    alpha: float,
 ) -> game.Move:
-    moves, ns = _build_tree(g, model, state, limit)
+
+    def noise():
+        return np.random.dirichlet([alpha] * mask.size())
+
+    moves, ns = _build_tree(g, model, state, limit, noise=noise)
 
     ps = np.array(ns)**(1 / temperature)
     ps = np.exp(ps) / sum(np.exp(ps))

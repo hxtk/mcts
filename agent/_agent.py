@@ -16,10 +16,15 @@ class TrainingPlayer(object):
         g: game.Game,
         model: tf.keras.Model,
         limit: Union[int, datetime.timedelta],
+        temperature: float,
+        alpha: float,
     ) -> None:
         self.game = g
         self.model = model
         self.limit = limit
+        self.temperature = temperature
+        self.alpha = alpha
+
         self.states: List[game.State] = []
         self.moves: List[game.Move] = []
 
@@ -29,7 +34,8 @@ class TrainingPlayer(object):
             model=self.model,
             state=state,
             limit=self.limit,
-            temperature=1.0,
+            temperature=self.temperature,
+            alpha=self.alpha,
             mask=mask,
         )
         self.states.append(state)
