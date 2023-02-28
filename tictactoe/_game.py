@@ -95,7 +95,7 @@ def state_shape() -> Sequence[int]:
     return new().shape
 
 
-def move_shape() -> Sequence[int]:
+def policy_shape() -> Sequence[int]:
     return move_mask(new()).shape
 
 

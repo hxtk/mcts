@@ -22,11 +22,10 @@ def main():
     ms = PathModelStore('data/')
     try:
         model = ms.load_model()
+        ms.save_model(model)
         logging.info('Loaded model successfully.')
     except IOError:
-        g = ttt.new()
-        m = ttt.move_mask(g)
-        model = agent.build_model(g.shape, m.shape)
+        model = agent.build_model(ttt)
         logging.info('Constructed new model.')
 
     for x in [0.002, 0.0002, 0.00002]:
@@ -35,12 +34,14 @@ def main():
             model,
             ttt,
             ms,
-            learning_rate=x,
-            games_per_batch=100,
-            test_games=100,
+            optimizer=tf.keras.optimizers.SGD(learning_rate=x),
+            node_count=30,
+            games_per_batch=2000,
+            samples_per_batch=3000,
+            test_games=200,
         )
 
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.DEBUG)
     main()

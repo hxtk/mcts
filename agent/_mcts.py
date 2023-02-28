@@ -13,7 +13,7 @@ import tensorflow as tf
 import game
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(slots=True)
 class TreeNode(object):
     g: game.Game
     model: tf.keras.Model
@@ -35,7 +35,7 @@ class TreeNode(object):
     # Prior probability of visiting this node.
     p: float
 
-    # Estimated value of state
+    # Estimated value of state for that state's player.
     v: float
 
     # Exploration function.
@@ -73,7 +73,7 @@ class TreeNode(object):
             w=0,
             q=0,
             p=p,
-            v=value.numpy(),
+            v=value.numpy()[0][g.player(state)],
         )
 
     def get_child(self, move: int) -> Optional['TreeNode']:
@@ -110,7 +110,9 @@ class TreeNode(object):
                 continue
 
             # If this move wins, play it unconditionally.
-            if self.g.evaluate(child.state) is not None:
+            evaluation = self.g.evaluate(child.state)
+            if evaluation is not None:
+                child.v = evaluation[self.g.player(child.state)]
                 return child
 
             if child.qu > max_child.qu:

@@ -1,3 +1,4 @@
+import datetime
 import logging
 
 import tensorflow as tf
@@ -25,14 +26,15 @@ def main():
         model = ms.load_model()
         logging.info('Loaded model successfully.')
     except IOError:
-        g = ttt.new()
-        m = ttt.move_mask(g)
-        model = agent.build_model(g.shape, m.shape)
+        model = agent.build_model(ttt)
         logging.info('Constructed new model.')
 
     human = ttt.players.TextIOPlayer()
-    cpu = agent.CompetitivePlayer(ttt, model, 10, show_eval=True)
-    print(game.play_classical(ttt, [cpu, human]))
+    cpu = agent.CompetitivePlayer(ttt,
+                                  model,
+                                  datetime.timedelta(seconds=1),
+                                  show_eval=True)
+    print(game.play_classical(ttt, [human, cpu]))
 
 
 if __name__ == '__main__':

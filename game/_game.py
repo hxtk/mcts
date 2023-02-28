@@ -51,7 +51,7 @@ class Game(Protocol):
         raise Exception('Not Implemented')
 
     @staticmethod
-    def move_shape() -> Sequence[int]:
+    def policy_shape() -> Sequence[int]:
         raise Exception('Not Implemented')
 
     @staticmethod

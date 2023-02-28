@@ -1,8 +1,11 @@
 import logging
+import multiprocessing
 import random
+from typing import Generator
 from typing import List
 from typing import Protocol
 from typing import Sequence
+from typing import Tuple
 
 import numpy as np
 import numpy.typing as npt
@@ -36,15 +39,14 @@ def compete_models(
     ]
     outcomes = np.empty((0, 2))
     for x in tqdm.trange(n_games):
-        outcomes = np.concatenate(
-            (outcomes,
-             np.array([
-                 game.play_classical(
-                     g,
-                     players if x % 2 == 0 else list(reversed(players)),
-                 )
-             ])))
-    result = np.apply_along_axis(np.sum, 0, outcomes)
+        outcome = game.play_classical(
+            g,
+            players if x % 2 == 0 else list(reversed(players)),
+        )
+        outcome = outcome if x % 2 == 0 else list(reversed(outcome))
+        outcomes = np.concatenate((outcomes, np.array([outcome])),)
+    result = np.apply_along_axis(np.sum, 0, 0.5 * (outcomes + 1))
+    logging.debug(result)
     return result[0] / n_games
 
 
@@ -54,13 +56,17 @@ def train(
     store: ModelStore,
     threshold: float = 0.55,
     *,
+    optimizer: tf.keras.optimizers.Optimizer,
     games_per_batch: int = 100,
     samples_per_batch: int = 300,
     learning_rate: float = 0.001,
     test_games: int = 100,
-) -> None:
+    node_count: int = 10,
+    max_retries: int = 3,
+    _retry_count: int = 0,
+) -> tf.keras.Model:
     model.compile(
-        optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
+        optimizer=optimizer,
         loss=[
             tf.keras.losses.CategoricalCrossentropy(),
             tf.keras.losses.MeanSquaredError(),
@@ -73,27 +79,59 @@ def train(
         g,
         games_per_batch,
         samples_per_batch,
+        node_count=node_count,
     )
     rate = compete_models(
         g,
         model,
         store.load_model(),
         n_games=test_games,
+        limit=node_count,
     )
     logging.info(f'New model beats old model in {rate*100}% of games.')
     if rate < threshold:
-        return
+        if _retry_count >= max_retries:
+            return store.load_model()
+        return train(
+            model=store.load_model(),
+            g=g,
+            store=store,
+            optimizer=optimizer,
+            threshold=threshold,
+            games_per_batch=games_per_batch,
+            samples_per_batch=samples_per_batch,
+            learning_rate=learning_rate,
+            test_games=test_games,
+            max_retries=max_retries,
+            _retry_count=_retry_count + 1,
+        )
 
-    train(
+    return train(
         model=model,
         g=g,
         store=store,
+        optimizer=optimizer,
         threshold=threshold,
         games_per_batch=games_per_batch,
         samples_per_batch=samples_per_batch,
         learning_rate=learning_rate,
         test_games=test_games,
+        max_retries=max_retries,
     )
+
+
+def training_data(
+    model: tf.keras.Model,
+    g: game.Game,
+    num_games: int,
+    node_count: int,
+) -> Generator[Tuple[game.State, game.Move, game.Evaluation], None, None]:
+    for _ in tqdm.trange(num_games):
+        player = _agent.TrainingPlayer(g, model, limit=node_count)
+        players = [player for _ in range(g.eval_shape()[0])]
+        outcome = game.play_classical(g, players)
+        for state, move in zip(player.states, player.moves):
+            yield state, move, outcome
 
 
 def training_batch(
@@ -101,36 +139,34 @@ def training_batch(
         g: game.Game,
         num_games: int,
         num_samples: int,
+        node_count: int,
         r: random.Random = random.Random(),
 ):
     states: List[game.State] = []
     moves: List[game.Move] = []
-    outcomes: List[float] = []
+    outcomes: List[game.Evaluation] = []
 
     logging.info('Generating training set...')
     n = -1
     for _ in tqdm.trange(num_games):
-        x_player = _agent.TrainingPlayer(g, model, limit=10)
-        o_player = _agent.TrainingPlayer(g, model, limit=10)
-        outcome = game.play_classical(g, [x_player, o_player])
-
-        batch_states = x_player.states + o_player.states
-        batch_moves = x_player.moves + o_player.moves
+        player = _agent.TrainingPlayer(g, model, limit=node_count)
+        players = [player for _ in range(g.eval_shape()[0])]
+        outcome = game.play_classical(g, players)
 
         # reservoir sampling labeled data for training.
-        for state, move in zip(batch_states, batch_moves):
+        for state, move in zip(player.states, player.moves):
             n += 1
             if len(states) < num_samples:
                 states.append(state)
                 moves.append(move)
-                outcomes.append(outcome[0])
+                outcomes.append(outcome)
                 continue
 
             j = r.randrange(n)
             if j < len(states):
                 states[j] = state
                 moves[j] = move
-                outcomes[j] = outcome[0]
+                outcomes[j] = outcome
 
     logging.info('Fitting model...')
     ss = np.array(states)
@@ -140,14 +176,13 @@ def training_batch(
 
 
 def build_model(
-    input_shape: Sequence[int],
-    output_shape: Sequence[int],
+    g: game.Game,
     *,
     residual_layers=1,
     residual_conv_filters=8,
     residual_kernel_size=3,
 ) -> tf.keras.Model:
-    inputs = tf.keras.layers.Input(shape=input_shape)
+    inputs = tf.keras.layers.Input(shape=g.state_shape())
 
     x = residual_in = inputs
     for _ in range(residual_layers):
@@ -169,17 +204,17 @@ def build_model(
         residual_in = x
 
     policy = value = x
-    for layer in _policy_head(output_shape):
+    for layer in _policy_head(g.policy_shape()):
         policy = layer(policy)
 
-    for layer in _value_head():
+    for layer in _value_head(g.eval_shape()):
         value = layer(value)
 
     model = tf.keras.Model(inputs, [policy, value])
     return model
 
 
-def _policy_head(shape: npt.ArrayLike) -> List[tf.keras.layers.Layer]:
+def _policy_head(shape: Sequence[int]) -> List[tf.keras.layers.Layer]:
     return [
         tf.keras.layers.Conv2D(2, 1, padding='same'),
         tf.keras.layers.BatchNormalization(),
@@ -190,12 +225,13 @@ def _policy_head(shape: npt.ArrayLike) -> List[tf.keras.layers.Layer]:
     ]
 
 
-def _value_head() -> List[tf.keras.layers.Layer]:
+def _value_head(shape: Sequence[int]) -> List[tf.keras.layers.Layer]:
     return [
         tf.keras.layers.Conv2D(16, 3, padding='same'),
         tf.keras.layers.BatchNormalization(),
         tf.keras.layers.ReLU(),
         tf.keras.layers.Flatten(),
-        tf.keras.layers.Dense(1, activation=tf.keras.activations.tanh),
-        tf.keras.layers.Reshape((1,), name='value')
+        tf.keras.layers.Dense(np.prod(shape),
+                              activation=tf.keras.activations.tanh),
+        tf.keras.layers.Reshape(shape, name='value')
     ]

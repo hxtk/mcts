@@ -9,5 +9,5 @@ move_mask = _game.move_mask
 evaluate = _game.evaluate
 player = _game.player
 state_shape = _game.state_shape
-move_shape = _game.move_shape
+policy_shape = _game.policy_shape
 eval_shape = _game.eval_shape
