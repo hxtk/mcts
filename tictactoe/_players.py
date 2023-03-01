@@ -27,7 +27,8 @@ def _coordinate_policy(row: int, col: Optional[int] = None) -> game.Move:
 def _hash_state(state: game.State) -> int:
     h = 0
     for x in state.flatten():
-        h |= x
+        if int(x) == 1:
+            h |= 1
         h <<= 1
     return h
 

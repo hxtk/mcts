@@ -78,10 +78,12 @@ class CompetitivePlayer(object):
 def _hash_state(state: game.State, mask: game.Move) -> int:
     h = 0
     for x in state.flatten():
-        h |= x
+        if int(x) == 1:
+            h |= 1
         h <<= 1
     for x in mask.flatten():
-        h |= x
+        if int(x) == 1:
+            h |= 1
         h <<= 1
     return h
 
