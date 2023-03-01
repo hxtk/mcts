@@ -14,7 +14,7 @@ import tensorflow as tf
 import game
 
 
-@dataclasses.dataclass(slots=True)
+@dataclasses.dataclass
 class TreeNode(object):
     g: game.Game
     model: tf.keras.Model
