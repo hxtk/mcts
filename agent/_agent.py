@@ -1,5 +1,6 @@
 import datetime
 from typing import List
+from typing import MutableMapping
 from typing import Union
 
 import tensorflow as tf
@@ -72,3 +73,31 @@ class CompetitivePlayer(object):
             print(f'Evaluation: {value}')
 
         return move
+
+
+def _hash_state(state: game.State, mask: game.Move) -> int:
+    h = 0
+    for x in state.flatten():
+        h |= x
+        h <<= 1
+    for x in mask.flatten():
+        h |= x
+        h <<= 1
+    return h
+
+
+class CachingPlayer(object):
+
+    def __init__(self, player: game.Player):
+        self.player = player
+        self.cache: MutableMapping[int, game.Move] = dict()
+
+    def __call__(
+        self,
+        state: game.State,
+        mask: game.Move,
+    ) -> game.Move:
+        h = _hash_state(state, mask)
+        if h in self.cache:
+            return self.cache[h]
+        return self.player(state, mask)

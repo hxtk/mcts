@@ -1,6 +1,5 @@
 import logging
 import random
-from typing import Generator
 from typing import List
 from typing import Protocol
 from typing import Sequence
@@ -32,8 +31,8 @@ def compete_models(
 ) -> float:
     logging.info('Competing models.')
     players = [
-        _agent.CompetitivePlayer(g, model1, limit=limit),
-        _agent.CompetitivePlayer(g, model2, limit=limit),
+        _agent.CachingPlayer(_agent.CompetitivePlayer(g, model1, limit=limit)),
+        _agent.CachingPlayer(_agent.CompetitivePlayer(g, model2, limit=limit)),
     ]
     outcomes = np.empty((0, 2))
     for x in tqdm.trange(n_games):
@@ -54,7 +53,6 @@ def train(
     store: ModelStore,
     threshold: float = 0.55,
     *,
-    optimizer: tf.keras.optimizers.Optimizer,
     games_per_batch: int = 100,
     samples_per_batch: int = 300,
     learning_rate: float = 0.001,
@@ -64,7 +62,8 @@ def train(
     _retry_count: int = 0,
 ) -> tf.keras.Model:
     model.compile(
-        optimizer=optimizer,
+        optimizer=tf.keras.optimizers.experimental.SGD(
+            learning_rate=learning_rate),
         loss=[
             tf.keras.losses.CategoricalCrossentropy(),
             tf.keras.losses.MeanSquaredError(),
@@ -94,7 +93,6 @@ def train(
             model=store.load_model(),
             g=g,
             store=store,
-            optimizer=optimizer,
             threshold=threshold,
             games_per_batch=games_per_batch,
             samples_per_batch=samples_per_batch,
@@ -108,7 +106,6 @@ def train(
         model=model,
         g=g,
         store=store,
-        optimizer=optimizer,
         threshold=threshold,
         games_per_batch=games_per_batch,
         samples_per_batch=samples_per_batch,
@@ -116,20 +113,6 @@ def train(
         test_games=test_games,
         max_retries=max_retries,
     )
-
-
-def training_data(
-    model: tf.keras.Model,
-    g: game.Game,
-    num_games: int,
-    node_count: int,
-) -> Generator[Tuple[game.State, game.Move, game.Evaluation], None, None]:
-    for _ in tqdm.trange(num_games):
-        player = _agent.TrainingPlayer(g, model, limit=node_count)
-        players = [player for _ in range(g.eval_shape()[0])]
-        outcome = game.play_classical(g, players)
-        for state, move in zip(player.states, player.moves):
-            yield state, move, outcome
 
 
 def training_batch(
@@ -152,7 +135,7 @@ def training_batch(
             model,
             limit=node_count,
             temperature=1.0,
-            alpha=0.4,
+            alpha=0.3,
         )
         players = [player for _ in range(g.eval_shape()[0])]
         outcome = game.play_classical(g, players)

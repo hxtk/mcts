@@ -197,7 +197,9 @@ def _build_tree(
         state=state,
         p=1.0,
     )
-    root.policy = root.policy + noise().reshape(root.policy.shape)
+    if noise is not None:
+        root.policy = root.policy + noise().reshape(root.policy.shape)
+
     root.n = 1
 
     if isinstance(limit, int):
@@ -226,7 +228,7 @@ def training_choose_move(
 ) -> game.Move:
 
     def noise():
-        return np.random.dirichlet([alpha] * mask.size())
+        return np.random.dirichlet([alpha] * mask.size)
 
     moves, ns = _build_tree(g, model, state, limit, noise=noise)
 

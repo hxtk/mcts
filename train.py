@@ -28,17 +28,17 @@ def main():
         model = agent.build_model(ttt)
         logging.info('Constructed new model.')
 
-    for x in [0.002, 0.0002, 0.00002]:
+    for x in [0.02, 0.002, 0.0002, 0.00002]:
         logging.info(f'learning_rate={x}')
         agent.train(
             model,
             ttt,
             ms,
-            optimizer=tf.keras.optimizers.SGD(learning_rate=x),
+            learning_rate=x,
             node_count=30,
-            games_per_batch=2000,
-            samples_per_batch=3000,
-            test_games=200,
+            games_per_batch=10,
+            samples_per_batch=20,
+            test_games=10,
         )
 
 
