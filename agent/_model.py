@@ -31,8 +31,8 @@ def compete_models(
 ) -> float:
     logging.info('Competing models.')
     players = [
-        _agent.CachingPlayer(_agent.CompetitivePlayer(g, model1, limit=limit)),
-        _agent.CachingPlayer(_agent.CompetitivePlayer(g, model2, limit=limit)),
+        _agent.CompetitivePlayer(g, model1, limit=limit),
+        _agent.CompetitivePlayer(g, model2, limit=limit),
     ]
     outcomes = np.empty((0, 2))
     for x in tqdm.trange(n_games):
