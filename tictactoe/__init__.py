@@ -10,4 +10,4 @@ evaluate = _game.evaluate
 player = _game.player
 state_shape = _game.state_shape
 policy_shape = _game.policy_shape
-eval_shape = _game.eval_shape
+eval_size = _game.eval_size

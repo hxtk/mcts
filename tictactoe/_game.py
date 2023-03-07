@@ -1,13 +1,10 @@
 """Module implemeting game.Game for Tic-Tac-Toe."""
 import enum
-from typing import List
+from typing import List, Tuple
 from typing import Optional
-from typing import Sequence
 
 import numpy as np
 import numpy.typing as npt
-
-import game
 
 
 class EndState(enum.Enum):
@@ -16,8 +13,8 @@ class EndState(enum.Enum):
     DRAW = 0
 
 
-Move = game.Move
-State = game.State
+Move = npt.NDArray[np.float32]
+State = npt.NDArray[np.float32]
 
 
 def new() -> State:
@@ -91,16 +88,16 @@ def evaluate(state: State) -> Optional[List[float]]:
         return [0, 0]
 
 
-def state_shape() -> Sequence[int]:
+def state_shape() -> Tuple[int]:
     return new().shape
 
 
-def policy_shape() -> Sequence[int]:
+def policy_shape() -> Tuple[int, ...]:
     return move_mask(new()).shape
 
 
-def eval_shape() -> Sequence[int]:
-    return (2,)
+def eval_size() -> int:
+    return 2
 
 
 def _evaluate(board: State) -> Optional[EndState]:

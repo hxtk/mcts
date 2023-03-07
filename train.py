@@ -3,7 +3,7 @@ import logging
 import tensorflow as tf
 
 import agent
-import tictactoe as ttt
+from tictactoe import tensor
 
 
 class PathModelStore(object):
@@ -25,14 +25,14 @@ def main():
         ms.save_model(model)
         logging.info('Loaded model successfully.')
     except IOError:
-        model = agent.build_model(ttt)
+        model = agent.build_model(tensor)
         logging.info('Constructed new model.')
 
     for x in [0.02, 0.002, 0.0002, 0.00002]:
         logging.info(f'learning_rate={x}')
         agent.train(
             model,
-            ttt,
+            tensor,
             ms,
             learning_rate=x,
             node_count=30,

@@ -1,16 +1,16 @@
-from typing import Optional
+from typing import Optional, Tuple
 from typing import Protocol
 from typing import Sequence
+from typing import TypeVar
 
 import numpy as np
-import numpy.typing as npt
 
-Move = npt.NDArray[np.float64]
-State = npt.NDArray[np.float64]
+Move = TypeVar('Move')
+State = TypeVar('State')
 Evaluation = Sequence[float]
 
 
-class Game(Protocol):
+class Game(Protocol[State, Move]):
 
     @staticmethod
     def move_mask(state: State) -> Move:
@@ -47,19 +47,19 @@ class Game(Protocol):
         raise Exception('Not Implemented')
 
     @staticmethod
-    def state_shape() -> Sequence[int]:
+    def state_shape() -> Tuple[int, ...]:
         raise Exception('Not Implemented')
 
     @staticmethod
-    def policy_shape() -> Sequence[int]:
+    def policy_shape() -> Tuple[int, ...]:
         raise Exception('Not Implemented')
 
     @staticmethod
-    def eval_shape() -> Sequence[int]:
+    def eval_size() -> int:
         raise Exception('Not Implemented')
 
 
-class Player(Protocol):
+class Player(Protocol[State, Move]):
     """A Player returns a move to be played.
 
     Players have access to the current state of the game and
@@ -71,8 +71,8 @@ class Player(Protocol):
 
 
 def play_classical(
-    game: Game,
-    players: Sequence[Player],
+    game: Game[State, Move],
+    players: Sequence[Player[State, Move]],
 ) -> Evaluation:
     """Play a classical game.
 
