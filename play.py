@@ -5,7 +5,7 @@ import tensorflow as tf
 
 import agent
 import game
-import tictactoe as ttt
+import tictactoe.tensor as ttt
 
 
 class PathModelStore(object):
@@ -26,7 +26,7 @@ def main():
         model = ms.load_model()
         logging.info('Loaded model successfully.')
     except IOError:
-        model = agent.build_model(ttt)
+        model = agent.residual_model(ttt)
         logging.info('Constructed new model.')
 
     human = ttt.players.TextIOPlayer()

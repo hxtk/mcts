@@ -70,7 +70,7 @@ class CompetitivePlayer(object):
         )
 
         if self.show_eval:
-            inputs = tf.convert_to_tensor(state.reshape((1,) + state.shape))
+            inputs = tf.reshape(state, (1,) + state.shape)
             _, value = self.model(inputs)
             print(f'Evaluation: {value}')
 

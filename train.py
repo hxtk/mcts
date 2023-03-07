@@ -26,7 +26,7 @@ def main():
         ms.save_model(model)
         logging.info('Loaded model successfully.')
     except IOError:
-        model = agent.build_model(tensor)
+        model = agent.residual_model(tensor)
         logging.info('Constructed new model.')
 
     print(model.summary())
@@ -38,8 +38,8 @@ def main():
             ms,
             learning_rate=x,
             node_count=30,
-            games_per_batch=10,
-            samples_per_batch=20,
+            games_per_batch=100,
+            samples_per_batch=2000,
             test_games=10,
         )
 

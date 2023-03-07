@@ -24,6 +24,7 @@ class TreeNode(object):
     state: game.State
     policy: game.Move
     mask: game.Move
+    end: bool
 
     # Number of times this node has been visited.
     n: float
@@ -68,16 +69,23 @@ class TreeNode(object):
 
         if _cache is not None:
             if h in _cache:
-                policy, value = _cache[h]
+                policy, value, evaluation = _cache[h]
             else:
                 inputs = tf.reshape(state, (1,) + g.state_shape())
                 policy, value = model(inputs)
                 policy = tf.reshape(policy, mask.shape)
-                _cache[h] = policy, value
+                evaluation = g.evaluate(state)
+                _cache[h] = policy, value, evaluation
         else:
             inputs = tf.reshape(state, (1,) + g.state_shape())
             policy, value = model(inputs)
             policy = tf.reshape(policy, mask.shape)
+            evaluation = g.evaluate(state)
+
+        if evaluation is None:
+            value = value.numpy()[0][g.player(state)]
+        else:
+            value = evaluation[g.player(state)]
 
         return cls(
             g=g,
@@ -87,11 +95,12 @@ class TreeNode(object):
             state=state,
             policy=policy,
             mask=mask,
+            end=evaluation is not None,
             n=0,
             w=0,
             q=0,
             p=p,
-            v=value.numpy()[0][g.player(state)],
+            v=value,
         )
 
     def get_child(
@@ -116,7 +125,7 @@ class TreeNode(object):
         child = self.build(
             g=self.g,
             model=self.model,
-            state=self.g.play_move(self.state, policy.numpy()),
+            state=self.g.play_move(self.state, policy),
             parent=self,
             p=self.policy[index],
             _cache=_cache,
@@ -140,9 +149,7 @@ class TreeNode(object):
                 continue
 
             # If this move wins, play it unconditionally.
-            evaluation = self.g.evaluate(child.state)
-            if evaluation is not None:
-                child.v = evaluation[self.g.player(child.state)]
+            if child.end:
                 return child
 
             if child.qu > max_child.qu:
