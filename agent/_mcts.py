@@ -262,13 +262,14 @@ class TreeBuilder(object):
 
 
 def training_choose_move(
-    g: game.Game,
-    model: tf.keras.Model,
-    state: game.State,
-    limit: Union[int, datetime.timedelta],
-    temperature: float,
-    alpha: float,
-    builder: TreeBuilder = TreeBuilder()) -> game.Move:
+        g: game.Game,
+        model: tf.keras.Model,
+        state: game.State,
+        limit: Union[int, datetime.timedelta],
+        temperature: float,
+        alpha: float,
+        builder: TreeBuilder = TreeBuilder(),
+) -> game.Move:
 
     def noise():
         size = np.prod(g.policy_shape())
@@ -314,8 +315,8 @@ def competitive_choose_move(
 
 
 def _hash_state(
-    state: npt.NDArray | tf.Tensor,
-    mask: npt.NDArray | tf.Tensor,
+    state: Union[npt.NDArray, tf.Tensor],
+    mask: Union[npt.NDArray, tf.Tensor],
 ) -> int:
     if not isinstance(state, np.ndarray):
         state = state.numpy()
