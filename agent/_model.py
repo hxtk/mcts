@@ -31,8 +31,8 @@ def compete_models(
 ) -> float:
     logging.info('Competing models.')
     players = [
-        _agent.CachingPlayer(_agent.CompetitivePlayer(g, model1, limit=limit)),
-        _agent.CachingPlayer(_agent.CompetitivePlayer(g, model2, limit=limit)),
+        _agent.CompetitivePlayer(g, model1, limit=limit),
+        _agent.CompetitivePlayer(g, model2, limit=limit),
     ]
     outcomes = np.empty((0, 2))
     for x in tqdm.trange(n_games):
@@ -129,15 +129,15 @@ def training_batch(
 
     logging.info('Generating training set...')
     n = -1
+    player = _agent.TrainingPlayer(
+        g,
+        model,
+        limit=node_count,
+        temperature=1.0,
+        alpha=0.3,
+    )
     for _ in tqdm.trange(num_games):
-        player = _agent.TrainingPlayer(
-            g,
-            model,
-            limit=node_count,
-            temperature=1.0,
-            alpha=0.3,
-        )
-        players = [player for _ in range(g.eval_shape()[0])]
+        players = [player]
         outcome = game.play_classical(g, players)
 
         # reservoir sampling labeled data for training.
@@ -154,6 +154,8 @@ def training_batch(
                 states[j] = state
                 moves[j] = move
                 outcomes[j] = outcome
+        player.states.clear()
+        player.moves.clear()
 
     logging.info('Fitting model...')
     ss = np.array(states)
@@ -162,7 +164,28 @@ def training_batch(
     model.fit(ss, [ms, oc])
 
 
-def build_model(
+def simple_model(
+    g: game.Game,
+    layers: Sequence[tf.keras.layers.Layer],
+) -> tf.keras.Model:
+    inputs = tf.keras.layers.Input(shape=g.state_shape())
+
+    x = inputs
+    for layer in layers:
+        x = layer(x)
+
+    policy = value = x
+    for layer in _policy_head(g.policy_shape()):
+        policy = layer(policy)
+
+    for layer in _value_head([g.eval_size()]):
+        value = layer(value)
+
+    model = tf.keras.Model(inputs, [policy, value])
+    return model
+
+
+def residual_model(
     g: game.Game,
     *,
     residual_layers=1,
@@ -194,7 +217,7 @@ def build_model(
     for layer in _policy_head(g.policy_shape()):
         policy = layer(policy)
 
-    for layer in _value_head(g.eval_shape()):
+    for layer in _value_head([g.eval_size()]):
         value = layer(value)
 
     model = tf.keras.Model(inputs, [policy, value])
@@ -208,7 +231,8 @@ def _policy_head(shape: Sequence[int]) -> List[tf.keras.layers.Layer]:
         tf.keras.layers.ReLU(),
         tf.keras.layers.Flatten(),
         tf.keras.layers.Dense(np.prod(shape)),
-        tf.keras.layers.Softmax(name='policy'),
+        tf.keras.layers.Softmax(),
+        tf.keras.layers.Reshape(shape, name='policy'),
     ]
 
 

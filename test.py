@@ -1,11 +1,11 @@
 import tensorflow as tf
 
 import agent
-import tictactoe as ttt
+import tictactoe.tensor as ttt
 
 
 def main():
-    model = agent.build_model(ttt)
+    model = agent.residual_model(ttt)
     model.compile(
         optimizer=tf.keras.optimizers.SGD(learning_rate=0.001),
         loss=[

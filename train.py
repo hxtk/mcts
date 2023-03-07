@@ -3,6 +3,7 @@ import logging
 import tensorflow as tf
 
 import agent
+import tictactoe as ttt
 from tictactoe import tensor
 
 
@@ -28,6 +29,7 @@ def main():
         model = agent.build_model(tensor)
         logging.info('Constructed new model.')
 
+    print(model.summary())
     for x in [0.02, 0.002, 0.0002, 0.00002]:
         logging.info(f'learning_rate={x}')
         agent.train(

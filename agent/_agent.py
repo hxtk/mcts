@@ -25,6 +25,7 @@ class TrainingPlayer(object):
         self.limit = limit
         self.temperature = temperature
         self.alpha = alpha
+        self.tree_builder = _mcts.TreeBuilder({})
 
         self.states: List[game.State] = []
         self.moves: List[game.Move] = []
@@ -37,7 +38,7 @@ class TrainingPlayer(object):
             limit=self.limit,
             temperature=self.temperature,
             alpha=self.alpha,
-            mask=mask,
+            builder=self.tree_builder,
         )
         self.states.append(state)
         self.moves.append(move)
@@ -57,6 +58,7 @@ class CompetitivePlayer(object):
         self.model = model
         self.limit = limit
         self.show_eval = show_eval
+        self.tree_builder = _mcts.TreeBuilder({})
 
     def __call__(self, state: game.State, mask: game.Move) -> game.Move:
         move = _mcts.competitive_choose_move(
@@ -64,7 +66,7 @@ class CompetitivePlayer(object):
             model=self.model,
             state=state,
             limit=self.limit,
-            mask=mask,
+            builder=self.tree_builder,
         )
 
         if self.show_eval:
@@ -92,7 +94,7 @@ class CachingPlayer(object):
 
     def __init__(self, player: game.Player):
         self.player = player
-        self.cache: MutableMapping[int, game.Move] = dict()
+        self.cache: MutableMapping[int, game.Move] = {}
 
     def __call__(
         self,
