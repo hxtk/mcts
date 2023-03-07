@@ -64,8 +64,57 @@ _KERNELS = tf.constant(
     dtype=tf.float32,
 )
 
+_ROW_KERNELS = tf.constant(
+    [
+        [[[1, 0, 0]], [[1, 0, 0]], [[1, 0, 0]]],
+        [[[0, 1, 0]], [[0, 1, 0]], [[0, 1, 0]]],
+        [[[0, 0, 1]], [[0, 0, 1]], [[0, 0, 1]]],
+    ],
+    dtype=tf.float32,
+)
+
+_COL_KERNELS = tf.constant(
+    [
+        [[[1, 0, 0]], [[0, 1, 0]], [[0, 0, 1]]],
+        [[[1, 0, 0]], [[0, 1, 0]], [[0, 0, 1]]],
+        [[[1, 0, 0]], [[0, 1, 0]], [[0, 0, 1]]],
+    ],
+    dtype=tf.float32,
+)
+
+_DIAGONAL_KERNELS = tf.constant(
+    [
+        [[[1, 0]], [[0, 0]], [[0, 1]]],
+        [[[0, 0]], [[1, 1]], [[0, 0]]],
+        [[[0, 1]], [[0, 0]], [[1, 0]]],
+    ],
+    dtype=tf.float32,
+)
+
+_ALL_KERNELS = tf.concat(
+    [_ROW_KERNELS, _COL_KERNELS, _DIAGONAL_KERNELS],
+    axis=-1,
+)
+
 
 def evaluate(state: State) -> Optional[List[float]]:
+    state = tf.reshape(state, (1,) + state_shape())
+    out = tf.nn.conv2d(
+        state[:, :, :, :1] - state[:, :, :, 1:],
+        _ALL_KERNELS,
+        strides=1,
+        padding='VALID',
+    )
+    if tf.math.reduce_max(out) >= 3:
+        return [1, -1]
+    if tf.math.reduce_min(out) <= -3:
+        return [-1, 1]
+    if tf.math.count_nonzero(state) >= 9:
+        return [0, 0]
+    return None
+
+
+def evaluate2(state: State) -> Optional[List[float]]:
     """Evaluate a GameState board.
 
     Args:
