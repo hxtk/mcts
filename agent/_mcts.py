@@ -60,13 +60,13 @@ class TreeNode(object):
         p: float = 0,
     ) -> 'TreeNode':
         mask: Union[npt.NDArray, tf.Tensor] = g.move_mask(state)
+        h = _hash_state(state, mask)
         if isinstance(state, np.ndarray):
             state = tf.convert_to_tensor(state)
         if isinstance(mask, np.ndarray):
             mask = tf.convert_to_tensor(mask)
 
         if _cache is not None:
-            h = (state.ref(), mask.ref())
             if h in _cache:
                 policy, value = _cache[h]
             else:
