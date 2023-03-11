@@ -177,7 +177,7 @@ def residual_model(
         residual_kernel_size,
         activation='relu',
         padding='same',
-    )
+    )(inputs)
 
     residual_in = x
     for _ in range(residual_layers):
