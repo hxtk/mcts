@@ -8,11 +8,13 @@ Move = tf.Tensor
 State = tf.Tensor
 
 
+@tf.function
 def new() -> State:
     """Return a game state for a new Tic-Tac-Toe game."""
     return tf.zeros(state_shape())
 
 
+@tf.function
 def move_mask(state: State) -> Move:
     """Evaluate the set of legal moves for a state.
 
@@ -23,6 +25,7 @@ def move_mask(state: State) -> Move:
                                                           axis=-1)
 
 
+@tf.function
 def play_move(state: State, move: Move) -> State:
     """Apply move to the game represented by state.
 
@@ -48,6 +51,7 @@ def play_move(state: State, move: Move) -> State:
     )
 
 
+@tf.function
 def player(state: State) -> int:
     """Get the ordinal number of the player whose turn it is.
 
@@ -55,7 +59,7 @@ def player(state: State) -> int:
         0 if it is X to play.
         1 if it is O to play.
     """
-    return int(state[0][0][2].numpy())
+    return tf.cast(state[0][0][2], dtype=tf.int32)
 
 
 _ROW_KERNELS = tf.constant(
@@ -91,7 +95,19 @@ _ALL_KERNELS = tf.concat(
 )
 
 
-def evaluate(state: State) -> Optional[List[float]]:
+@tf.function
+def _assign_eval(x: tf.Tensor) -> tf.Tensor:
+    if x[0] >= 3:
+        return tf.constant([1., -1.])
+    if x[1] <= -3:
+        return tf.constant([-1., 1.])
+    if x[2] >= 9:
+        return tf.constant([0., 0.])
+    return tf.constant([float('nan'), float('nan')])
+
+
+@tf.function
+def evaluate(state: State) -> tf.Tensor:
     """Evaluate a GameState board.
 
     Args:
@@ -105,20 +121,33 @@ def evaluate(state: State) -> Optional[List[float]]:
         respectively. A victory for X is [1, -1], a victory for O is [-1, 1],
         and a draw is [0, 0].
     """
-    state = tf.reshape(state, (1,) + state_shape())
+    state = tf.reshape(state, (-1,) + state_shape())
     out = tf.nn.conv2d(
         state[:, :, :, :1] - state[:, :, :, 1:2],
         _ALL_KERNELS,
         strides=1,
         padding='VALID',
     )
-    if tf.math.reduce_max(out) >= 3:
-        return [1, -1]
-    if tf.math.reduce_min(out) <= -3:
-        return [-1, 1]
-    if tf.math.count_nonzero(state[:, :, :, :2]) >= 9:
-        return [0, 0]
-    return None
+    out = tf.reshape(
+        tf.concat([
+            tf.math.reduce_max(out, axis=[-3, -2, -1], keepdims=True),
+            tf.math.reduce_min(out, axis=[-3, -2, -1], keepdims=True),
+            tf.cast(
+                tf.math.count_nonzero(
+                    state[:, :, :, 0:2],
+                    axis=[-3, -2, -1],
+                    keepdims=True,
+                ),
+                dtype=tf.float32,
+            ),
+        ],
+                  axis=-1),
+        shape=(-1, 3),
+    )
+    return tf.map_fn(
+        fn=_assign_eval,
+        elems=out,
+    )
 
 
 def state_shape() -> Tuple[int, ...]:

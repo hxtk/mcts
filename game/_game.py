@@ -1,16 +1,16 @@
-from typing import Optional, Tuple
 from typing import Protocol
 from typing import Sequence
+from typing import Tuple
 from typing import TypeVar
 
-import numpy as np
+import tensorflow as tf
 
 Move = TypeVar('Move')
 State = TypeVar('State')
-Evaluation = Sequence[float]
+Evaluation = TypeVar('Evaluation')
 
 
-class Game(Protocol[State, Move]):
+class Game(Protocol[State, Move, Evaluation]):
 
     @staticmethod
     def move_mask(state: State) -> Move:
@@ -32,7 +32,7 @@ class Game(Protocol[State, Move]):
         raise Exception('Not Implemented')
 
     @staticmethod
-    def evaluate(state: State) -> Optional[Evaluation]:
+    def evaluate(state: State) -> Evaluation:
         """Evaluate the value of the position if it is a terminal state.
 
         Returns:
@@ -67,11 +67,11 @@ class Player(Protocol[State, Move]):
     """
 
     def __call__(self, state: State, mask: Move) -> Move:
-        return np.empty(0)
+        raise Exception('Not Implemented')
 
 
 def play_classical(
-    game: Game[State, Move],
+    game: Game[State, Move, Evaluation],
     players: Sequence[Player[State, Move]],
 ) -> Evaluation:
     """Play a classical game.
@@ -93,12 +93,12 @@ def play_classical(
     g = game.new()
 
     idx = 0
-    value = game.evaluate(g)
-    while value is None:
+    value = game.evaluate(g)[0]
+    while tf.math.reduce_any(tf.math.is_nan(value)).numpy():
         mask = game.move_mask(g)
         g = game.play_move(g, players[idx](g, mask))
 
         idx = (idx + 1) % len(players)
-        value = game.evaluate(g)
+        value = game.evaluate(g)[0]
 
     return value

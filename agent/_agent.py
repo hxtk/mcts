@@ -8,6 +8,9 @@ import tensorflow as tf
 import game
 from agent import _mcts
 
+State = tf.Tensor
+Move = tf.Tensor
+
 
 class TrainingPlayer(object):
     """Player that makes weighted random moves and saves a replay buffer."""
@@ -60,7 +63,7 @@ class CompetitivePlayer(object):
         self.show_eval = show_eval
         self.tree_builder = _mcts.TreeBuilder({})
 
-    def __call__(self, state: game.State, mask: game.Move) -> game.Move:
+    def __call__(self, state: State, mask: Move) -> Move:
         move = _mcts.competitive_choose_move(
             g=self.game,
             model=self.model,
@@ -77,17 +80,24 @@ class CompetitivePlayer(object):
         return move
 
 
-def _hash_state(state: game.State, mask: game.Move) -> int:
-    h = 0
-    for x in state.flatten():
-        if int(x) == 1:
-            h |= 1
-        h <<= 1
-    for x in mask.flatten():
-        if int(x) == 1:
-            h |= 1
-        h <<= 1
-    return h
+@tf.function
+def _hash_state(
+    state: tf.Tensor,
+    mask: tf.Tensor,
+) -> tf.Tensor:
+    entries = tf.concat([
+        tf.reshape(state, shape=(-1,)),
+        tf.reshape(mask, shape=(-1,)),
+    ],
+                        axis=0)
+    return tf.foldl(
+        fn=lambda a, x: tf.bitwise.bitwise_or(
+            tf.bitwise.left_shift(a, tf.constant(1)),
+            tf.constant(1) if x > 0.5 else tf.constant(0),
+        ),
+        elems=entries,
+        initializer=tf.constant(0),
+    )
 
 
 class CachingPlayer(object):
@@ -101,7 +111,7 @@ class CachingPlayer(object):
         state: game.State,
         mask: game.Move,
     ) -> game.Move:
-        h = _hash_state(state, mask)
+        h = _hash_state(state, mask).numpy()
         if h in self.cache:
             return self.cache[h]
         return self.player(state, mask)

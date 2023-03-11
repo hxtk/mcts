@@ -14,16 +14,20 @@ import tensorflow as tf
 
 import game
 
+State = tf.Tensor
+Move = tf.Tensor
+Evaluation = tf.Tensor
+
 
 @dataclasses.dataclass
 class TreeNode(object):
-    g: game.Game
+    g: game.Game[State, Move, Evaluation]
     model: tf.keras.Model
     parent: Optional['TreeNode']
     children: MutableMapping[int, 'TreeNode']
-    state: game.State
-    policy: game.Move
-    mask: game.Move
+    state: State
+    policy: Move
+    mask: Move
     end: bool
 
     # Number of times this node has been visited.
@@ -53,36 +57,32 @@ class TreeNode(object):
     @classmethod
     def build(
         cls,
-        g: game.Game,
+        g: game.Game[State, Move, Evaluation],
         model: tf.keras.Model,
-        state: Union[npt.NDArray, tf.Tensor],
+        state: State,
         parent: Optional['TreeNode'] = None,
-        _cache: Optional[MutableMapping] = None,
+        cache: Optional[MutableMapping] = None,
         p: float = 0,
     ) -> 'TreeNode':
-        mask: Union[npt.NDArray, tf.Tensor] = g.move_mask(state)
-        h = _hash_state(state, mask)
-        if isinstance(state, np.ndarray):
-            state = tf.convert_to_tensor(state)
-        if isinstance(mask, np.ndarray):
-            mask = tf.convert_to_tensor(mask)
-
-        if _cache is not None:
-            if h in _cache:
-                policy, value, evaluation = _cache[h]
+        mask = g.move_mask(state)
+        if cache is not None:
+            h = _hash_state(state, mask).numpy()
+            if h in cache:
+                policy, value, evaluation = cache[h]
             else:
                 inputs = tf.reshape(state, (1,) + g.state_shape())
                 policy, value = model(inputs)
                 policy = tf.reshape(policy, mask.shape)
-                evaluation = g.evaluate(state)
-                _cache[h] = policy, value, evaluation
+                evaluation = g.evaluate(state)[0]
+                cache[h] = policy, value, evaluation
         else:
             inputs = tf.reshape(state, (1,) + g.state_shape())
             policy, value = model(inputs)
             policy = tf.reshape(policy, mask.shape)
-            evaluation = g.evaluate(state)
+            evaluation = g.evaluate(state)[0]
 
-        if evaluation is None:
+        game_continues = tf.math.reduce_any(tf.math.is_nan(evaluation))
+        if game_continues:
             value = value.numpy()[0][g.player(state)]
         else:
             value = evaluation[g.player(state)]
@@ -95,7 +95,7 @@ class TreeNode(object):
             state=state,
             policy=policy,
             mask=mask,
-            end=evaluation is not None,
+            end=not game_continues,
             n=0,
             w=0,
             q=0,
@@ -106,8 +106,8 @@ class TreeNode(object):
     def get_child(
         self,
         move: int,
-        _cache: Optional[MutableMapping[int, Tuple[tf.Tensor,
-                                                   tf.Tensor]]] = None,
+        cache: Optional[MutableMapping[int, Tuple[tf.Tensor,
+                                                  tf.Tensor]]] = None,
     ) -> Optional['TreeNode']:
         if move in self.children:
             return self.children[move]
@@ -128,23 +128,23 @@ class TreeNode(object):
             state=self.g.play_move(self.state, policy),
             parent=self,
             p=self.policy[index],
-            _cache=_cache,
+            cache=cache,
         )
         self.children[move] = child
         return child
 
     def max_qu_child(
         self,
-        _cache: Optional[MutableMapping[int, Tuple[tf.Tensor,
-                                                   tf.Tensor]]] = None,
+        cache: Optional[MutableMapping[int, Tuple[tf.Tensor,
+                                                  tf.Tensor]]] = None,
     ) -> Optional['TreeNode']:
         max_child: Optional['TreeNode'] = None
         for i in range(np.prod(self.g.policy_shape())):
             if max_child is None:
-                max_child = self.get_child(i, _cache)
+                max_child = self.get_child(i, cache)
                 continue
 
-            child = self.get_child(i, _cache)
+            child = self.get_child(i, cache)
             if child is None:
                 continue
 
@@ -158,12 +158,12 @@ class TreeNode(object):
 
     def grow_tree(
         self,
-        _cache: Optional[MutableMapping[int, Tuple[tf.Tensor,
-                                                   tf.Tensor]]] = None,
+        cache: Optional[MutableMapping[int, Tuple[tf.Tensor,
+                                                  tf.Tensor]]] = None,
     ):
         leaf = self
         while leaf.n != 0:
-            child = leaf.max_qu_child(_cache=_cache)
+            child = leaf.max_qu_child(cache=cache)
             if child is None:
                 break
             leaf = child
@@ -238,7 +238,7 @@ class TreeBuilder(object):
         model: tf.keras.Model,
         state: game.State,
         limit: Union[LimitCondition, int, datetime.timedelta],
-        noise: Optional[Callable[[], game.Move]] = None
+        noise: Optional[Callable[[], np.ndarray]] = None
     ) -> Tuple[List[int], List[float]]:
         root = TreeNode.build(
             g=g,
@@ -246,7 +246,7 @@ class TreeBuilder(object):
             parent=None,
             state=state,
             p=1.0,
-            _cache=self.cache,
+            cache=self.cache,
         )
         if noise is not None:
             root.policy = root.policy + noise().reshape(root.policy.shape)
@@ -259,7 +259,7 @@ class TreeBuilder(object):
             limit = TimeLimit(datetime.datetime.utcnow() + limit)
 
         while limit.increment():
-            root.grow_tree(_cache=self.cache)
+            root.grow_tree(cache=self.cache)
         moves = []
         ns = []
         for k, v in root.children.items():
@@ -321,21 +321,21 @@ def competitive_choose_move(
     return policy
 
 
+@tf.function
 def _hash_state(
-    state: Union[npt.NDArray, tf.Tensor],
-    mask: Union[npt.NDArray, tf.Tensor],
-) -> int:
-    if not isinstance(state, np.ndarray):
-        state = state.numpy()
-    if not isinstance(mask, np.ndarray):
-        mask = mask.numpy()
-    h = 0
-    for x in state.flatten():
-        if int(x) == 1:
-            h |= 1
-        h <<= 1
-    for x in mask.flatten():
-        if int(x) == 1:
-            h |= 1
-        h <<= 1
-    return h
+    state: tf.Tensor,
+    mask: tf.Tensor,
+) -> tf.Tensor:
+    entries = tf.concat([
+        tf.reshape(state, shape=(-1,)),
+        tf.reshape(mask, shape=(-1,)),
+    ],
+                        axis=0)
+    return tf.foldl(
+        fn=lambda a, x: tf.bitwise.bitwise_or(
+            tf.bitwise.left_shift(a, tf.constant(1)),
+            tf.constant(1) if x > 0.5 else tf.constant(0),
+        ),
+        elems=entries,
+        initializer=tf.constant(0),
+    )
