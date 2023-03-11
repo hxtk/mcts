@@ -164,27 +164,6 @@ def training_batch(
     model.fit(ss, [ms, oc])
 
 
-def simple_model(
-    g: game.Game,
-    layers: Sequence[tf.keras.layers.Layer],
-) -> tf.keras.Model:
-    inputs = tf.keras.layers.Input(shape=g.state_shape())
-
-    x = inputs
-    for layer in layers:
-        x = layer(x)
-
-    policy = value = x
-    for layer in _policy_head(g.policy_shape()):
-        policy = layer(policy)
-
-    for layer in _value_head([g.eval_size()]):
-        value = layer(value)
-
-    model = tf.keras.Model(inputs, [policy, value])
-    return model
-
-
 def residual_model(
     g: game.Game,
     *,
@@ -193,8 +172,14 @@ def residual_model(
     residual_kernel_size=3,
 ) -> tf.keras.Model:
     inputs = tf.keras.layers.Input(shape=g.state_shape())
+    x = tf.keras.layers.Conv2D(
+        residual_conv_filters,
+        residual_kernel_size,
+        activation='relu',
+        padding='same',
+    )
 
-    x = residual_in = inputs
+    residual_in = x
     for _ in range(residual_layers):
         x = tf.keras.layers.Conv2D(
             residual_conv_filters,
@@ -209,7 +194,7 @@ def residual_model(
             padding='same',
         )(x)
         x = tf.keras.layers.BatchNormalization()(x)
-        x = tf.keras.layers.Concatenate()([x, residual_in])
+        x = tf.keras.layers.Add()([x, residual_in])
         x = tf.keras.layers.ReLU()(x)
         residual_in = x
 

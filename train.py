@@ -26,7 +26,9 @@ def main():
         ms.save_model(model)
         logging.info('Loaded model successfully.')
     except IOError:
-        model = agent.residual_model(tensor)
+        model = agent.residual_model(tensor,
+                                     residual_layers=2,
+                                     residual_conv_filters=32)
         logging.info('Constructed new model.')
 
     print(model.summary())
