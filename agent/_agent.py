@@ -28,7 +28,7 @@ class TrainingPlayer(object):
         self.limit = limit
         self.temperature = temperature
         self.alpha = alpha
-        self.tree_builder = _mcts.TreeBuilder({})
+        self.tree_builder = _mcts.TreeBuilder()
 
         self.states: List[game.State] = []
         self.moves: List[game.Move] = []
@@ -61,7 +61,7 @@ class CompetitivePlayer(object):
         self.model = model
         self.limit = limit
         self.show_eval = show_eval
-        self.tree_builder = _mcts.TreeBuilder({})
+        self.tree_builder = _mcts.TreeBuilder()
 
     def __call__(self, state: State, mask: Move) -> Move:
         move = _mcts.competitive_choose_move(

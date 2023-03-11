@@ -2,6 +2,7 @@ import dataclasses
 import datetime
 from typing import Callable
 from typing import List
+from typing import Mapping
 from typing import MutableMapping
 from typing import Optional
 from typing import Protocol
@@ -9,7 +10,6 @@ from typing import Tuple
 from typing import Union
 
 import numpy as np
-import numpy.typing as npt
 import tensorflow as tf
 
 import game
@@ -19,12 +19,23 @@ Move = tf.Tensor
 Evaluation = tf.Tensor
 
 
+@tf.function(reduce_retracing=True)
+def _infer_batch(
+    g: game.Game[State, Move, Evaluation],
+    model: tf.keras.Model,
+    states: State,
+) -> Tuple[Move, Evaluation, Evaluation]:
+    policies, values = model(states)
+    evals = g.evaluate(states)
+    return policies, values, evals
+
+
 @dataclasses.dataclass
 class TreeNode(object):
     g: game.Game[State, Move, Evaluation]
     model: tf.keras.Model
     parent: Optional['TreeNode']
-    children: MutableMapping[int, 'TreeNode']
+    children: Optional[Mapping[int, 'TreeNode']]
     state: State
     policy: Move
     mask: Move
@@ -53,6 +64,87 @@ class TreeNode(object):
     @property
     def qu(self):
         return self.q + self.u
+
+    def _build_children(
+        self,
+        cache: Optional[MutableMapping] = None,
+    ) -> Mapping[int, 'TreeNode']:
+        outputs = {}
+        states = []
+        for i in range(np.prod(self.policy.shape)):
+            index = np.unravel_index(i, self.g.policy_shape())
+            if self.mask[index] == 0:
+                continue
+            policy = tf.scatter_nd(
+                indices=[index],
+                updates=[1.],
+                shape=self.g.policy_shape(),
+            )
+            state = tf.reshape(self.g.play_move(self.state, policy),
+                               shape=(1,) + self.g.state_shape())
+            mask = self.g.move_mask(state[0])
+            h = _hash_state(state, mask).numpy()
+            if cache is None or h not in cache:
+                states.append((i, state, mask, h))
+            else:
+                policy, value, evaluation = cache[h]
+
+                game_continues = tf.math.reduce_any(tf.math.is_nan(evaluation))
+                if game_continues:
+                    value = value[self.g.player(state[0])].numpy()
+                else:
+                    value = evaluation[self.g.player(state[0])].numpy()
+
+                outputs[i] = TreeNode(
+                    g=self.g,
+                    model=self.model,
+                    parent=self,
+                    children=None,
+                    state=state[0],
+                    policy=policy,
+                    mask=mask,
+                    end=not game_continues,
+                    n=0,
+                    w=0,
+                    q=0,
+                    p=self.policy[index],
+                    v=value,
+                )
+
+        if len(states) == 0:
+            return outputs
+
+        policies, values, evals = _infer_batch(
+            self.g, self.model, tf.concat([x[1] for x in states], axis=0))
+
+        data = zip(states, policies, values, evals)
+        for x, policy, value, evaluation in data:
+            i, state, mask, h = x
+            if cache is not None:
+                cache[h] = policy, value, evaluation
+            game_continues = tf.math.reduce_any(tf.math.is_nan(evaluation))
+            if game_continues:
+                value = value[self.g.player(state[0])].numpy()
+            else:
+                value = evaluation[self.g.player(state[0])].numpy()
+
+            outputs[i] = TreeNode(
+                g=self.g,
+                model=self.model,
+                parent=self,
+                children=None,
+                state=state[0],
+                policy=policy,
+                mask=mask,
+                end=not game_continues,
+                n=0,
+                w=0,
+                q=0,
+                p=self.policy[np.unravel_index(x[0], self.g.policy_shape())],
+                v=value,
+            )
+
+        return outputs
 
     @classmethod
     def build(
@@ -91,14 +183,14 @@ class TreeNode(object):
             g=g,
             model=model,
             parent=parent,
-            children=dict(),
+            children=None,
             state=state,
             policy=policy,
             mask=mask,
             end=not game_continues,
-            n=0,
-            w=0,
-            q=0,
+            n=0.,
+            w=0.,
+            q=0.,
             p=p,
             v=value,
         )
@@ -109,29 +201,11 @@ class TreeNode(object):
         cache: Optional[MutableMapping[int, Tuple[tf.Tensor,
                                                   tf.Tensor]]] = None,
     ) -> Optional['TreeNode']:
+        if self.children is None:
+            self.children = self._build_children()
         if move in self.children:
             return self.children[move]
-        size = np.prod(self.g.policy_shape())
-        if tf.reshape(self.mask, (size,))[move] == 0:
-            return None
-
-        index = np.unravel_index(move, self.g.policy_shape())
-        policy = tf.scatter_nd(
-            indices=[index],
-            updates=[1.],
-            shape=self.g.policy_shape(),
-        )
-
-        child = self.build(
-            g=self.g,
-            model=self.model,
-            state=self.g.play_move(self.state, policy),
-            parent=self,
-            p=self.policy[index],
-            cache=cache,
-        )
-        self.children[move] = child
-        return child
+        return None
 
     def max_qu_child(
         self,
@@ -262,6 +336,7 @@ class TreeBuilder(object):
             root.grow_tree(cache=self.cache)
         moves = []
         ns = []
+        assert root.children is not None
         for k, v in root.children.items():
             moves.append(k)
             ns.append(v.n)
