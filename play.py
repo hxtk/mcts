@@ -21,7 +21,7 @@ class PathModelStore(object):
 
 
 def main():
-    ms = PathModelStore('data/')
+    ms = PathModelStore('model/')
     try:
         model = ms.load_model()
         logging.info('Loaded model successfully.')
