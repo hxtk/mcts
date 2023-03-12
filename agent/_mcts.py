@@ -77,8 +77,10 @@ class TreeNode(object):
                 updates=[1.],
                 shape=self.g.policy_shape(),
             )
-            state = tf.reshape(self.g.play_move(self.state, policy),
-                               shape=(1,) + self.g.state_shape())
+            state = tf.reshape(
+                self.g.play_move(self.state, policy),
+                shape=(1,) + self.g.state_shape()
+            )
             mask = self.g.move_mask(state[0])
             states.append((i, state, mask))
 
@@ -86,7 +88,8 @@ class TreeNode(object):
             return outputs
 
         policies, values, evals = _infer_batch(
-            self.g, self.model, tf.concat([x[1] for x in states], axis=0))
+            self.g, self.model, tf.concat([x[1] for x in states], axis=0)
+        )
 
         data = zip(states, policies, values, evals)
         for x, policy, value, evaluation in data:
@@ -283,13 +286,13 @@ class TreeBuilder(object):
 
 
 def training_choose_move(
-        g: game.Game,
-        model: tf.keras.Model,
-        state: game.State,
-        limit: Union[int, datetime.timedelta],
-        temperature: float,
-        alpha: float,
-        builder: TreeBuilder = TreeBuilder(),
+    g: game.Game,
+    model: tf.keras.Model,
+    state: game.State,
+    limit: Union[int, datetime.timedelta],
+    temperature: float,
+    alpha: float,
+    builder: TreeBuilder = TreeBuilder(),
 ) -> game.Move:
 
     def noise():
@@ -340,11 +343,13 @@ def _hash_state(
     state: tf.Tensor,
     mask: tf.Tensor,
 ) -> tf.Tensor:
-    entries = tf.concat([
-        tf.reshape(state, shape=(-1,)),
-        tf.reshape(mask, shape=(-1,)),
-    ],
-                        axis=0)
+    entries = tf.concat(
+        [
+            tf.reshape(state, shape=(-1,)),
+            tf.reshape(mask, shape=(-1,)),
+        ],
+        axis=0
+    )
     return tf.foldl(
         fn=lambda a, x: tf.bitwise.bitwise_or(
             tf.bitwise.left_shift(a, tf.constant(1)),

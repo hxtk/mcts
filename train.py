@@ -3,7 +3,6 @@ import logging
 import tensorflow as tf
 
 import agent
-import tictactoe as ttt
 from tictactoe import tensor
 
 
@@ -13,23 +12,22 @@ class PathModelStore(object):
         self.path = path
 
     def load_model(self) -> tf.keras.Model:
-        return tf.keras.models.load_model(self.path)
+        try:
+            return tf.keras.models.load_model(self.path)
+        except IOError:
+            return agent.residual_model(
+                tensor,
+                residual_layers=2,
+                residual_conv_filters=32,
+            )
 
     def save_model(self, model: tf.keras.Model) -> None:
         model.save(self.path, overwrite=True)
 
 
 def main():
-    ms = PathModelStore('data/')
-    try:
-        model = ms.load_model()
-        ms.save_model(model)
-        logging.info('Loaded model successfully.')
-    except IOError:
-        model = agent.residual_model(tensor,
-                                     residual_layers=2,
-                                     residual_conv_filters=32)
-        logging.info('Constructed new model.')
+    ms = PathModelStore('model/')
+    model = ms.load_model()
 
     print(model.summary())
     for x in [0.02, 0.002, 0.0002, 0.00002]:

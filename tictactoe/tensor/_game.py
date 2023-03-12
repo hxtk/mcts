@@ -21,8 +21,8 @@ def move_mask(state: State) -> Move:
     Returns:
         A 3x3 0-1 array where 1s represent legal moves.
     """
-    return tf.ones(state.shape[:-1]) - tf.math.reduce_max(state[:, :, :2],
-                                                          axis=-1)
+    return tf.ones(state.shape[:-1]
+                  ) - tf.math.reduce_max(state[:, :, :2], axis=-1)
 
 
 @tf.function
@@ -129,19 +129,21 @@ def evaluate(state: State) -> tf.Tensor:
         padding='VALID',
     )
     out = tf.reshape(
-        tf.concat([
-            tf.math.reduce_max(out, axis=[-3, -2, -1], keepdims=True),
-            tf.math.reduce_min(out, axis=[-3, -2, -1], keepdims=True),
-            tf.cast(
-                tf.math.count_nonzero(
-                    state[:, :, :, 0:2],
-                    axis=[-3, -2, -1],
-                    keepdims=True,
+        tf.concat(
+            [
+                tf.math.reduce_max(out, axis=[-3, -2, -1], keepdims=True),
+                tf.math.reduce_min(out, axis=[-3, -2, -1], keepdims=True),
+                tf.cast(
+                    tf.math.count_nonzero(
+                        state[:, :, :, 0:2],
+                        axis=[-3, -2, -1],
+                        keepdims=True,
+                    ),
+                    dtype=tf.float32,
                 ),
-                dtype=tf.float32,
-            ),
-        ],
-                  axis=-1),
+            ],
+            axis=-1
+        ),
         shape=(-1, 3),
     )
     return tf.map_fn(

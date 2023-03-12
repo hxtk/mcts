@@ -30,7 +30,8 @@ class TestEvaluate(unittest.TestCase):
     def test_empty_board(self):
         board = _game.new()
         self.assertTrue(
-            tf.math.reduce_all(tf.math.is_nan(_game.evaluate(board))),)
+            tf.math.reduce_all(tf.math.is_nan(_game.evaluate(board))),
+        )
 
     def test_x_row(self):
         for x in range(3):
@@ -41,17 +42,23 @@ class TestEvaluate(unittest.TestCase):
             )
             self.assertTrue(
                 tf.math.reduce_all(
-                    tf.math.equal(_game.evaluate(board), [[1., -1.]]),),)
+                    tf.math.equal(_game.evaluate(board), [[1., -1.]]),
+                ),
+            )
 
     def test_x_row_batch(self):
         boards = tf.scatter_nd(
             indices=[[y, x, y, 0] for x in range(3) for y in range(3)],
             updates=[1. for _ in range(9)],
-            shape=(3,) + _game.state_shape())
+            shape=(3,) + _game.state_shape()
+        )
         self.assertTrue(
             tf.math.reduce_all(
-                tf.math.equal(_game.evaluate(boards),
-                              [[1., -1.] for _ in range(3)]),),)
+                tf.math.equal(
+                    _game.evaluate(boards), [[1., -1.] for _ in range(3)]
+                ),
+            ),
+        )
 
     def test_x_col(self):
         board = np.zeros((2, 3, 3))

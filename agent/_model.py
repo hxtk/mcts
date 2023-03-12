@@ -1,5 +1,6 @@
 import logging
 import random
+from typing import Generator
 from typing import List
 from typing import Protocol
 from typing import Sequence
@@ -63,14 +64,14 @@ def train(
 ) -> tf.keras.Model:
     model.compile(
         optimizer=tf.keras.optimizers.experimental.SGD(
-            learning_rate=learning_rate),
+            learning_rate=learning_rate
+        ),
         loss=[
             tf.keras.losses.CategoricalCrossentropy(),
             tf.keras.losses.MeanSquaredError(),
         ],
     )
     logging.info('Running training batch.')
-    store.save_model(model)
     training_batch(
         model,
         g,
@@ -102,6 +103,7 @@ def train(
             _retry_count=_retry_count + 1,
         )
 
+    store.save_model(model)
     return train(
         model=model,
         g=g,
@@ -115,13 +117,35 @@ def train(
     )
 
 
+def training_game(
+    store: ModelStore,
+    g: game.Game[tf.Tensor, tf.Tensor, tf.Tensor],
+    alpha: float,
+    temperature: float,
+    node_count: int,
+    reload_interval: int = 100,
+) -> Generator[Tuple[tf.Tensor, tf.Tensor, tf.Tensor], None, None]:
+    while True:
+        model = store.load_model()
+        for _ in range(reload_interval):
+            player = _agent.TrainingPlayer(
+                g,
+                model,
+                limit=node_count,
+                temperature=temperature,
+                alpha=alpha,
+            )
+            outcome = game.play_classical(g, [player])
+            outcome = tf.repeat(outcome, len(player.states))
+
+
 def training_batch(
-        model: tf.keras.Model,
-        g: game.Game,
-        num_games: int,
-        num_samples: int,
-        node_count: int,
-        r: random.Random = random.Random(),
+    model: tf.keras.Model,
+    g: game.Game[tf.Tensor, tf.Tensor, tf.Tensor],
+    num_games: int,
+    num_samples: int,
+    node_count: int,
+    r: random.Random = random.Random(),
 ):
     states: List[game.State] = []
     moves: List[game.Move] = []
@@ -223,11 +247,13 @@ def _policy_head(shape: Sequence[int]) -> List[tf.keras.layers.Layer]:
 
 def _value_head(shape: Sequence[int]) -> List[tf.keras.layers.Layer]:
     return [
-        tf.keras.layers.Conv2D(16, 3, padding='same'),
+        tf.keras.layers.Conv2D(1, 1, padding='same'),
         tf.keras.layers.BatchNormalization(),
         tf.keras.layers.ReLU(),
         tf.keras.layers.Flatten(),
-        tf.keras.layers.Dense(np.prod(shape),
-                              activation=tf.keras.activations.tanh),
+        tf.keras.layers.Dense(64, activation='relu'),
+        tf.keras.layers.Dense(
+            np.prod(shape), activation=tf.keras.activations.tanh
+        ),
         tf.keras.layers.Reshape(shape, name='value')
     ]

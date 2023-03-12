@@ -30,10 +30,9 @@ def main():
         logging.info('Constructed new model.')
 
     human = ttt.players.TextIOPlayer()
-    cpu = agent.CompetitivePlayer(ttt,
-                                  model,
-                                  datetime.timedelta(seconds=1),
-                                  show_eval=True)
+    cpu = agent.CompetitivePlayer(
+        ttt, model, datetime.timedelta(seconds=1), show_eval=True
+    )
     print(game.play_classical(ttt, [human, cpu]))
 
 

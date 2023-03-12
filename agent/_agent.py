@@ -85,11 +85,13 @@ def _hash_state(
     state: tf.Tensor,
     mask: tf.Tensor,
 ) -> tf.Tensor:
-    entries = tf.concat([
-        tf.reshape(state, shape=(-1,)),
-        tf.reshape(mask, shape=(-1,)),
-    ],
-                        axis=0)
+    entries = tf.concat(
+        [
+            tf.reshape(state, shape=(-1,)),
+            tf.reshape(mask, shape=(-1,)),
+        ],
+        axis=0
+    )
     return tf.foldl(
         fn=lambda a, x: tf.bitwise.bitwise_or(
             tf.bitwise.left_shift(a, tf.constant(1)),

@@ -13,19 +13,23 @@ class TestMinMaxPlayer(unittest.TestCase):
         self.engine = _players.MinMaxPlayer()
 
     def test_recognizes_loss(self):
-        board = np.array([[
-            [1, 1, 1],
-            [1, 1, 0],
-            [0, 0, 0],
-        ], [
-            [0, 0, 0],
-            [1, 0, 0],
-            [0, 0, 0],
-        ], [
-            [1, 1, 1],
-            [1, 1, 1],
-            [1, 1, 1],
-        ]])
+        board = np.array(
+            [
+                [
+                    [1, 1, 1],
+                    [1, 1, 0],
+                    [0, 0, 0],
+                ], [
+                    [0, 0, 0],
+                    [1, 0, 0],
+                    [0, 0, 0],
+                ], [
+                    [1, 1, 1],
+                    [1, 1, 1],
+                    [1, 1, 1],
+                ]
+            ]
+        )
         value, move = self.engine.value(
             board,
             _game.move_mask(board),
@@ -36,19 +40,23 @@ class TestMinMaxPlayer(unittest.TestCase):
         self.assertEqual(move, None)
 
     def test_takes_win(self):
-        board = np.array([[
-            [1, 1, 0],
-            [0, 0, 0],
-            [0, 0, 0],
-        ], [
-            [0, 0, 0],
-            [1, 1, 0],
-            [0, 0, 0],
-        ], [
-            [0, 0, 0],
-            [0, 0, 0],
-            [0, 0, 0],
-        ]])
+        board = np.array(
+            [
+                [
+                    [1, 1, 0],
+                    [0, 0, 0],
+                    [0, 0, 0],
+                ], [
+                    [0, 0, 0],
+                    [1, 1, 0],
+                    [0, 0, 0],
+                ], [
+                    [0, 0, 0],
+                    [0, 0, 0],
+                    [0, 0, 0],
+                ]
+            ]
+        )
         value, move = self.engine.value(
             board,
             _game.move_mask(board),
@@ -61,19 +69,23 @@ class TestMinMaxPlayer(unittest.TestCase):
         self.assertEqual(move, 2)
 
     def test_blocks_enemy_win(self):
-        board = np.array([[
-            [1, 1, 0],
-            [0, 0, 0],
-            [0, 0, 0],
-        ], [
-            [0, 0, 0],
-            [1, 0, 0],
-            [0, 0, 0],
-        ], [
-            [1, 1, 1],
-            [1, 1, 1],
-            [1, 1, 1],
-        ]])
+        board = np.array(
+            [
+                [
+                    [1, 1, 0],
+                    [0, 0, 0],
+                    [0, 0, 0],
+                ], [
+                    [0, 0, 0],
+                    [1, 0, 0],
+                    [0, 0, 0],
+                ], [
+                    [1, 1, 1],
+                    [1, 1, 1],
+                    [1, 1, 1],
+                ]
+            ]
+        )
         value, move = self.engine.value(
             board,
             _game.move_mask(board),
