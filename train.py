@@ -37,7 +37,7 @@ def main():
             tensor,
             ms,
             learning_rate=x,
-            node_count=30,
+            node_count=10,
             games_per_batch=100,
             samples_per_batch=2000,
             test_games=10,
