@@ -1,3 +1,4 @@
+"""Model construction to evaluate game states."""
 from typing import List
 from typing import Sequence
 import numpy as np

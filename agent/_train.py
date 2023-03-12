@@ -35,8 +35,8 @@ def compete_models(
 ) -> float:
     logging.info('Competing models.')
     players = [
-        _agent.CompetitivePlayer(g, model1, limit=limit),
-        _agent.CompetitivePlayer(g, model2, limit=limit),
+        _agent.TreeNodePlayer(g, model1, limit=limit),
+        _agent.TreeNodePlayer(g, model2, limit=limit),
     ]
     outcomes = np.empty((0, 2))
     for x in tqdm.trange(n_games):
@@ -44,7 +44,7 @@ def compete_models(
             g,
             players if x % 2 == 0 else list(reversed(players)),
         )
-        outcome = outcome if x % 2 == 0 else tf.reverse(outcome)
+        outcome = outcome if x % 2 == 0 else tf.reverse(outcome, axis=0)
         outcomes = np.concatenate((outcomes, np.array([outcome])),)
     result = np.apply_along_axis(np.sum, 0, 0.5 * (outcomes + 1))
     logging.debug(result)
@@ -156,33 +156,37 @@ def training_batch(
 
     logging.info('Generating training set...')
     n = -1
-    player = _agent.TrainingPlayer(
-        g,
-        model,
-        limit=node_count,
-        temperature=1.0,
-        alpha=0.3,
-    )
+    players = [
+        _agent.TreeNodePlayer(
+            g,
+            model,
+            limit=node_count,
+            temperature=1.0,
+            alpha=0.3,
+        ) for _ in range(g.eval_size())
+    ]
+
     for _ in tqdm.trange(num_games):
-        players = [player]
         outcome = game.play_classical(g, players)
 
         # reservoir sampling labeled data for training.
-        for state, move in zip(player.states, player.moves):
-            n += 1
-            if len(states) < num_samples:
-                states.append(state)
-                moves.append(move)
-                outcomes.append(outcome)
-                continue
+        for player in players:
+            for state, move in zip(player.states, player.moves):
+                n += 1
+                if len(states) < num_samples:
+                    states.append(state)
+                    moves.append(move)
+                    outcomes.append(outcome)
+                    continue
 
-            j = r.randrange(n)
-            if j < len(states):
-                states[j] = state
-                moves[j] = move
-                outcomes[j] = outcome
-        player.states.clear()
-        player.moves.clear()
+                j = r.randrange(n)
+                if j < len(states):
+                    states[j] = state
+                    moves[j] = move
+                    outcomes[j] = outcome
+            player.states.clear()
+            player.moves.clear()
+            player.root = None
 
     logging.info('Fitting model...')
     ss = np.array(states)
