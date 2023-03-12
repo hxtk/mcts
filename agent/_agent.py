@@ -110,38 +110,6 @@ class TreeNodePlayer(object):
         size = np.prod(shape)
         return np.random.dirichlet([alpha] * size).reshape(shape)
 
-    def _choose_move_nd(
-        self,
-        moves: List[int],
-        ns: List[float],
-    ) -> Tuple[int, Move]:
-        ps = np.array(ns)**(1 / self.temperature)
-        ps = np.exp(ps) / sum(np.exp(ps))
-        move = np.random.choice(moves, p=ps)
-
-        shape = self.game.policy_shape()
-        index = np.unravel_index(move, shape)
-        return move, tf.scatter_nd(
-            indices=[index],
-            updates=[1.],
-            shape=shape,
-        )
-
-    def _choose_move(
-        self,
-        moves: List[int],
-        ns: List[float],
-    ) -> Tuple[int, Move]:
-        move = moves[np.argmax(ns)]
-
-        shape = self.game.policy_shape()
-        index = np.unravel_index(move, shape)
-        return move, tf.scatter_nd(
-            indices=[index],
-            updates=[1.],
-            shape=shape,
-        )
-
     def __call__(self, state: State, mask: Move) -> Move:
         if isinstance(self.limit, int):
             limit = CountLimit(self.limit)
@@ -185,16 +153,21 @@ class TreeNodePlayer(object):
             ns.append(v.n)
 
         if self.deterministic:
-            move, policy = self._choose_move(moves, ns)
+            move_ref = moves[np.argmax(ns)]
         else:
-            move, policy = self._choose_move_nd(moves, ns)
+            ps = np.array(ns)**(1 / self.temperature)
+            ps = np.exp(ps) / sum(np.exp(ps))
+            move_ref = np.random.choice(moves, p=ps)
 
-        self.root = self.root.children[move]
+        self.root = self.root.children[move_ref]
+        self.root.parent = None
+
+        move = move_ref.deref()
 
         if self.show_eval:
             print(f'Evaluation: {self.root.v}')
 
         self.states.append(state)
-        self.moves.append(policy)
+        self.moves.append(move)
 
-        return policy
+        return move

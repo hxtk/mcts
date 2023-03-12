@@ -1,6 +1,8 @@
 """Monte-Carlo Tree Search with ANN to evaluate leaf nodes."""
 import dataclasses
+from typing import Any
 from typing import Optional
+from typing import Protocol
 from typing import Tuple
 
 import numpy as np
@@ -11,6 +13,15 @@ import game
 State = tf.Tensor
 Move = tf.Tensor
 Evaluation = tf.Tensor
+
+
+class Reference(Protocol):
+
+    def __hash__(self) -> Any:
+        pass
+
+    def deref(self) -> tf.Tensor:
+        pass
 
 
 @tf.function(reduce_retracing=True)
@@ -29,7 +40,7 @@ class TreeNode(object):
     g: game.Game[State, Move, Evaluation]
     model: tf.keras.Model
     parent: Optional['TreeNode']
-    children: dict[int, 'TreeNode']
+    children: dict[Reference, 'TreeNode']
     state: State
     policy: Move
     mask: Move
@@ -63,21 +74,21 @@ class TreeNode(object):
         if self.children:
             return
         states = []
-        for i in range(np.prod(self.policy.shape)):
-            index = np.unravel_index(i, self.g.policy_shape())
-            if self.mask[index] == 0:
-                continue
-            policy = tf.scatter_nd(
-                indices=[index],
-                updates=[1.],
-                shape=self.g.policy_shape(),
-            )
+        policy_shape = self.g.policy_shape()
+        legal_policies = tf.reshape(
+            tf.one_hot(
+                indices=tf.where(tf.reshape(self.mask, shape=(-1,)),),
+                depth=np.prod(policy_shape),
+            ),
+            shape=(-1,) + policy_shape,
+        )
+        for move in legal_policies:
             state = tf.reshape(
-                self.g.play_move(self.state, policy),
+                self.g.play_move(self.state, move),
                 shape=(1,) + self.g.state_shape()
             )
             mask = self.g.move_mask(state[0])
-            states.append((i, state, mask))
+            states.append((move, state, mask))
 
         if len(states) == 0:
             return
@@ -93,14 +104,14 @@ class TreeNode(object):
 
         data = zip(states, policies, values, evals)
         for x, policy, value, evaluation in data:
-            i, state, mask = x
+            move, state, mask = x
             game_continues = tf.math.reduce_any(tf.math.is_nan(evaluation))
             if game_continues:
                 value = value[self.g.player(state[0])].numpy()
             else:
                 value = evaluation[self.g.player(state[0])].numpy()
 
-            self.children[i] = TreeNode(
+            self.children[move.ref()] = TreeNode(
                 g=self.g,
                 model=self.model,
                 parent=self,
@@ -112,7 +123,7 @@ class TreeNode(object):
                 n=0,
                 w=0,
                 q=0,
-                p=self.policy[np.unravel_index(x[0], self.g.policy_shape())],
+                p=tf.math.reduce_sum(self.policy * move),
                 v=value,
             )
 
@@ -153,24 +164,13 @@ class TreeNode(object):
             v=value,
         )
 
-    def get_child(
-        self,
-        move: int,
-    ) -> Optional['TreeNode']:
-        self.build_children()
-        if move in self.children:
-            return self.children[move]
-        return None
-
     def max_qu_child(self) -> Optional['TreeNode']:
-        max_child: Optional['TreeNode'] = None
-        for i in range(np.prod(self.g.policy_shape())):
-            if max_child is None:
-                max_child = self.get_child(i)
-                continue
+        self.build_children()
 
-            child = self.get_child(i)
-            if child is None:
+        max_child: Optional['TreeNode'] = None
+        for child in self.children.values():
+            if max_child is None:
+                max_child = child
                 continue
 
             # If this move wins, play it unconditionally.
@@ -182,7 +182,7 @@ class TreeNode(object):
         return max_child
 
     def grow_tree(self):
-        leaf = self
+        leaf = self.max_qu_child()
         while leaf.n != 0:
             child = leaf.max_qu_child()
             if child is None:
