@@ -159,18 +159,11 @@ class TreeNodePlayer(object):
                 p=1.0,
             )
         else:
-            self.root.build_children()
             for v in self.root.children.values():
                 if tf.math.reduce_all(v.state == state):
                     self.root = v
                     break
             else:
-                logging.warning(
-                    (
-                        'state does not follow from previous state. '
-                        'Rebuilding MCTS tree.'
-                    ),
-                )
                 self.root = _mcts.TreeNode.build(
                     g=self.game,
                     model=self.model,
