@@ -336,25 +336,3 @@ def competitive_choose_move(
     )
 
     return policy
-
-
-@tf.function
-def _hash_state(
-    state: tf.Tensor,
-    mask: tf.Tensor,
-) -> tf.Tensor:
-    entries = tf.concat(
-        [
-            tf.reshape(state, shape=(-1,)),
-            tf.reshape(mask, shape=(-1,)),
-        ],
-        axis=0
-    )
-    return tf.foldl(
-        fn=lambda a, x: tf.bitwise.bitwise_or(
-            tf.bitwise.left_shift(a, tf.constant(1)),
-            tf.constant(1) if x > 0.5 else tf.constant(0),
-        ),
-        elems=entries,
-        initializer=tf.constant(0),
-    )
