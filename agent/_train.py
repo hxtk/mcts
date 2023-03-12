@@ -44,7 +44,7 @@ def compete_models(
             g,
             players if x % 2 == 0 else list(reversed(players)),
         )
-        outcome = outcome if x % 2 == 0 else tf.reverse(outcome, axis=0)
+        outcome = outcome if x % 2 == 0 else tf.reverse(outcome, axis=(0,))
         outcomes = np.concatenate((outcomes, np.array([outcome])),)
     result = np.apply_along_axis(np.sum, 0, 0.5 * (outcomes + 1))
     logging.debug(result)
@@ -74,7 +74,7 @@ def train(
             tf.keras.losses.MeanSquaredError(),
         ],
     )
-    logging.info('Running training batch.')
+    print('Running training batch.')
     training_batch(
         model,
         g,
@@ -89,7 +89,7 @@ def train(
         n_games=test_games,
         limit=node_count,
     )
-    logging.info(f'New model beats old model in {rate*100}% of games.')
+    print(f'New model beats old model in {rate*100}% of games.')
     if rate < threshold:
         if _retry_count >= max_retries:
             return store.load_model()
@@ -131,7 +131,7 @@ def training_game(
     while True:
         model = store.load_model()
         for _ in range(reload_interval):
-            player = _agent.TrainingPlayer(
+            player = _agent.TreeNodePlayer(
                 g,
                 model,
                 limit=node_count,
