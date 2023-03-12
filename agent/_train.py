@@ -46,6 +46,11 @@ def compete_models(
         )
         outcome = outcome if x % 2 == 0 else tf.reverse(outcome, axis=(0,))
         outcomes = np.concatenate((outcomes, np.array([outcome])),)
+        for p in players:
+            p.root = None
+            p.states.clear()
+            p.moves.clear()
+
     result = np.apply_along_axis(np.sum, 0, 0.5 * (outcomes + 1))
     logging.debug(result)
     return result[0] / n_games

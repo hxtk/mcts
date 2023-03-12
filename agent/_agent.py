@@ -171,10 +171,6 @@ class TreeNodePlayer(object):
                         'Rebuilding MCTS tree.'
                     ),
                 )
-                print(state)
-                print(
-                    list(child.state for child in self.root.children.values())
-                )
                 self.root = _mcts.TreeNode.build(
                     g=self.game,
                     model=self.model,
