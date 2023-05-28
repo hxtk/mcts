@@ -18,7 +18,6 @@ Evaluation = tf.Tensor
 
 
 class ModelStore(Protocol):
-
     def load_model(self) -> tf.keras.Model:
         """Load the last model saved."""
 
@@ -33,7 +32,7 @@ def compete_models(
     n_games: int = 100,
     limit: int = 10,
 ) -> float:
-    logging.info('Competing models.')
+    logging.info("Competing models.")
     players = [
         _agent.TreeNodePlayer(g, model1, limit=limit),
         _agent.TreeNodePlayer(g, model2, limit=limit),
@@ -45,7 +44,9 @@ def compete_models(
             players if x % 2 == 0 else list(reversed(players)),
         )
         outcome = outcome if x % 2 == 0 else tf.reverse(outcome, axis=(0,))
-        outcomes = np.concatenate((outcomes, np.array([outcome])),)
+        outcomes = np.concatenate(
+            (outcomes, np.array([outcome])),
+        )
         for p in players:
             p.root = None
             p.states.clear()
@@ -71,15 +72,13 @@ def train(
     _retry_count: int = 0,
 ) -> tf.keras.Model:
     model.compile(
-        optimizer=tf.keras.optimizers.experimental.SGD(
-            learning_rate=learning_rate
-        ),
+        optimizer=tf.keras.optimizers.experimental.SGD(learning_rate=learning_rate),
         loss=[
             tf.keras.losses.CategoricalCrossentropy(),
             tf.keras.losses.MeanSquaredError(),
         ],
     )
-    print('Running training batch.')
+    print("Running training batch.")
     training_batch(
         model,
         g,
@@ -94,7 +93,7 @@ def train(
         n_games=test_games,
         limit=node_count,
     )
-    print(f'New model beats old model in {rate*100}% of games.')
+    print(f"New model beats old model in {rate*100}% of games.")
     if rate < threshold:
         if _retry_count >= max_retries:
             return store.load_model()
@@ -159,7 +158,7 @@ def training_batch(
     moves: List[game.Move] = []
     outcomes: List[game.Evaluation] = []
 
-    logging.info('Generating training set...')
+    logging.info("Generating training set...")
     n = -1
     players = [
         _agent.TreeNodePlayer(
@@ -168,7 +167,8 @@ def training_batch(
             limit=node_count,
             temperature=1.0,
             alpha=0.3,
-        ) for _ in range(g.eval_size())
+        )
+        for _ in range(g.eval_size())
     ]
 
     for _ in tqdm.trange(num_games):
@@ -193,7 +193,7 @@ def training_batch(
             player.moves.clear()
             player.root = None
 
-    logging.info('Fitting model...')
+    logging.info("Fitting model...")
     ss = np.array(states)
     ms = np.array(moves)
     oc = np.array(outcomes)

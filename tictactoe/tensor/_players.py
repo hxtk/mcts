@@ -25,13 +25,13 @@ def _hash_state(state: game.State) -> int:
 
 def _render_board(state: game.State):
     """Print the tic-tac-toe board as ASCII text."""
-    line = '+-+-+-+\n'
+    line = "+-+-+-+\n"
     out = line
     for row in (state[:, :, 0] - state[:, :, 1]).numpy():
-        out += '|'
+        out += "|"
         for cell in row:
-            out += ['O', ' ', 'X'][int(cell + 1)] + '|'
-        out += '\n' + line
+            out += ["O", " ", "X"][int(cell + 1)] + "|"
+        out += "\n" + line
     return out
 
 
@@ -54,20 +54,20 @@ def _read_line(
     Returns:
         A tuple corresponding to the row and column in which to play.
     """
-    row, sep, col = source.readline().partition(' ')
-    if sep == '':
-        row, sep, col = row.partition(',')
+    row, sep, col = source.readline().partition(" ")
+    if sep == "":
+        row, sep, col = row.partition(",")
 
     col = col[:-1]  # Remove trailing newline
-    if sep == '' or not row.isnumeric() or not col.isnumeric():
-        print(f'You entered: {row} {col}', file=out)
-        print('Format: [row] SPACE [col]\nExample: 0 2', file=out)
+    if sep == "" or not row.isnumeric() or not col.isnumeric():
+        print(f"You entered: {row} {col}", file=out)
+        print("Format: [row] SPACE [col]\nExample: 0 2", file=out)
         return _read_line(source, out, mask)
 
     row_n = int(row)
     col_n = int(col)
     if not 0 <= row_n < 3 or not 0 <= col_n < 3 or mask[row_n][col_n] == 0:
-        print(f'{row_n} {col_n} is not a legal move. Try another:', file=out)
+        print(f"{row_n} {col_n} is not a legal move. Try another:", file=out)
         return _read_line(source, out, mask)
 
     return row_n, col_n
@@ -85,16 +85,16 @@ class TextIOPlayer(object):
         print(_render_board(state), file=self._out)
 
         if state[2][0][0] == 0:
-            player = 'X'
+            player = "X"
         else:
-            player = 'O'
+            player = "O"
 
-        print(f'{player} to play ([row] [col]): ', file=self._out)
+        print(f"{player} to play ([row] [col]): ", file=self._out)
         row, col = _read_line(self._in, self._out, mask)
 
         return tf.scatter_nd(
             indices=[[row, col]],
-            updates=[1.],
+            updates=[1.0],
             shape=_game.policy_shape(),
         )
 
@@ -117,16 +117,17 @@ class RandomPlayer(object):
 
         return tf.scatter_nd(
             indices=[index],
-            updates=[1.],
+            updates=[1.0],
             shape=_game.policy_shape(),
         )
 
 
 class MinMaxPlayer(object):
-
     def __init__(self) -> None:
-        self.value_cache: MutableMapping[int, Tuple[float,
-                                                    Optional[int]],] = dict()
+        self.value_cache: MutableMapping[
+            int,
+            Tuple[float, Optional[int]],
+        ] = dict()
 
     def value(
         self,
@@ -149,7 +150,7 @@ class MinMaxPlayer(object):
         for i, x in enumerate(mask.flatten()):
             if x == 0:
                 # Illegal moves are worse than losing.
-                values[i] = float('-inf')
+                values[i] = float("-inf")
                 continue
 
             move = _coordinate_policy(i)
@@ -170,8 +171,8 @@ class MinMaxPlayer(object):
 
     def __call__(self, state: game.State, mask: game.Move) -> game.Move:
         val, move = self.value(state, mask)
-        print(f'Evaluation: {val}')
+        print(f"Evaluation: {val}")
         if move is None:
-            raise ValueError('Invoked player on a game that was already over.')
+            raise ValueError("Invoked player on a game that was already over.")
 
         return _coordinate_policy(move)

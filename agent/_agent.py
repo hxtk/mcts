@@ -19,7 +19,6 @@ Evaluation = tf.Tensor
 
 
 class LimitCondition(Protocol):
-
     def increment(self) -> bool:
         """Report an operation taking place.
 
@@ -27,7 +26,7 @@ class LimitCondition(Protocol):
             True if the limiting condition has not been reached.
             False otherwise.
         """
-        raise Exception('Not implemented')
+        raise Exception("Not implemented")
 
 
 class TimeLimit(object):
@@ -155,7 +154,7 @@ class TreeNodePlayer(object):
         if self.deterministic:
             move_ref = moves[np.argmax(ns)]
         else:
-            ps = np.array(ns)**(1 / self.temperature)
+            ps = np.array(ns) ** (1 / self.temperature)
             ps = np.exp(ps) / sum(np.exp(ps))
             move_ref = np.random.choice(moves, p=ps)
 
@@ -165,7 +164,7 @@ class TreeNodePlayer(object):
         move = move_ref.deref()
 
         if self.show_eval:
-            print(f'Evaluation: {self.root.v}')
+            print(f"Evaluation: {self.root.v}")
 
         self.states.append(state)
         self.moves.append(move)

@@ -16,7 +16,6 @@ Evaluation = tf.Tensor
 
 
 class Reference(Protocol):
-
     def __hash__(self) -> Any:
         pass
 
@@ -39,8 +38,8 @@ def _infer_batch(
 class TreeNode(object):
     g: game.Game[State, Move, Evaluation]
     model: tf.keras.Model
-    parent: Optional['TreeNode']
-    children: dict[Reference, 'TreeNode']
+    parent: Optional["TreeNode"]
+    children: dict[Reference, "TreeNode"]
     state: State
     policy: Move
     mask: Move
@@ -77,15 +76,16 @@ class TreeNode(object):
         policy_shape = self.g.policy_shape()
         legal_policies = tf.reshape(
             tf.one_hot(
-                indices=tf.where(tf.reshape(self.mask, shape=(-1,)),),
+                indices=tf.where(
+                    tf.reshape(self.mask, shape=(-1,)),
+                ),
                 depth=np.prod(policy_shape),
             ),
             shape=(-1,) + policy_shape,
         )
         for move in legal_policies:
             state = tf.reshape(
-                self.g.play_move(self.state, move),
-                shape=(1,) + self.g.state_shape()
+                self.g.play_move(self.state, move), shape=(1,) + self.g.state_shape()
             )
             mask = self.g.move_mask(state[0])
             states.append((move, state, mask))
@@ -133,9 +133,9 @@ class TreeNode(object):
         g: game.Game[State, Move, Evaluation],
         model: tf.keras.Model,
         state: State,
-        parent: Optional['TreeNode'] = None,
+        parent: Optional["TreeNode"] = None,
         p: float = 0,
-    ) -> 'TreeNode':
+    ) -> "TreeNode":
         mask = g.move_mask(state)
         inputs = tf.reshape(state, (1,) + g.state_shape())
         policy, value = model(inputs)
@@ -157,17 +157,17 @@ class TreeNode(object):
             policy=policy,
             mask=mask,
             end=not game_continues,
-            n=0.,
-            w=0.,
-            q=0.,
+            n=0.0,
+            w=0.0,
+            q=0.0,
             p=p,
             v=value,
         )
 
-    def max_qu_child(self) -> Optional['TreeNode']:
+    def max_qu_child(self) -> Optional["TreeNode"]:
         self.build_children()
 
-        max_child: Optional['TreeNode'] = None
+        max_child: Optional["TreeNode"] = None
         for child in self.children.values():
             if max_child is None:
                 max_child = child

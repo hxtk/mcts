@@ -7,7 +7,6 @@ from tictactoe import _players
 
 
 class TestMinMaxPlayer(unittest.TestCase):
-
     def setUp(self) -> None:
         super().setUp()
         self.engine = _players.MinMaxPlayer()
@@ -19,15 +18,17 @@ class TestMinMaxPlayer(unittest.TestCase):
                     [1, 1, 1],
                     [1, 1, 0],
                     [0, 0, 0],
-                ], [
+                ],
+                [
                     [0, 0, 0],
                     [1, 0, 0],
                     [0, 0, 0],
-                ], [
+                ],
+                [
                     [1, 1, 1],
                     [1, 1, 1],
                     [1, 1, 1],
-                ]
+                ],
             ]
         )
         value, move = self.engine.value(
@@ -46,15 +47,17 @@ class TestMinMaxPlayer(unittest.TestCase):
                     [1, 1, 0],
                     [0, 0, 0],
                     [0, 0, 0],
-                ], [
+                ],
+                [
                     [0, 0, 0],
                     [1, 1, 0],
                     [0, 0, 0],
-                ], [
+                ],
+                [
                     [0, 0, 0],
                     [0, 0, 0],
                     [0, 0, 0],
-                ]
+                ],
             ]
         )
         value, move = self.engine.value(
@@ -75,15 +78,17 @@ class TestMinMaxPlayer(unittest.TestCase):
                     [1, 1, 0],
                     [0, 0, 0],
                     [0, 0, 0],
-                ], [
+                ],
+                [
                     [0, 0, 0],
                     [1, 0, 0],
                     [0, 0, 0],
-                ], [
+                ],
+                [
                     [1, 1, 1],
                     [1, 1, 1],
                     [1, 1, 1],
-                ]
+                ],
             ]
         )
         value, move = self.engine.value(
@@ -95,5 +100,5 @@ class TestMinMaxPlayer(unittest.TestCase):
         self.assertEqual(move, 2)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

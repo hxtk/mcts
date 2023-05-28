@@ -12,11 +12,13 @@ class TestPlayMove(unittest.TestCase):
     def test_first_move(self):
         g = _game.play_move(
             _game.new(),
-            np.array([
-                [1, 0, 0],
-                [0, 0, 0],
-                [0, 0, 0],
-            ]),
+            np.array(
+                [
+                    [1, 0, 0],
+                    [0, 0, 0],
+                    [0, 0, 0],
+                ]
+            ),
         )
 
         self.assertEqual(g[0][0][0], 1)
@@ -79,5 +81,5 @@ class TestEvaluate(unittest.TestCase):
         self.assertEqual(_game.evaluate(board), [-1, 1])
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

@@ -5,13 +5,12 @@ from typing import TypeVar
 
 import tensorflow as tf
 
-Move = TypeVar('Move')
-State = TypeVar('State')
-Evaluation = TypeVar('Evaluation')
+Move = TypeVar("Move")
+State = TypeVar("State")
+Evaluation = TypeVar("Evaluation")
 
 
 class Game(Protocol[State, Move, Evaluation]):
-
     @staticmethod
     def move_mask(state: State) -> Move:
         """Compute an 0-1 array with 1s representing legal moves.
@@ -19,17 +18,17 @@ class Game(Protocol[State, Move, Evaluation]):
         The returned array MUST be of the same shape as the input accepted by
         `play_move`.
         """
-        raise Exception('Not Implemented')
+        raise Exception("Not Implemented")
 
     @staticmethod
     def new() -> State:
         """Return an initial game state."""
-        raise Exception('Not Implemented')
+        raise Exception("Not Implemented")
 
     @staticmethod
     def play_move(state: State, move: Move) -> State:
         """Modify the state of the game to record `move` being played."""
-        raise Exception('Not Implemented')
+        raise Exception("Not Implemented")
 
     @staticmethod
     def evaluate(state: State) -> Evaluation:
@@ -39,24 +38,24 @@ class Game(Protocol[State, Move, Evaluation]):
             None if the game is not a terminal state; otherwise returns the
             evaluation of the position for the first player.
         """
-        raise Exception('Not Implemented')
+        raise Exception("Not Implemented")
 
     @staticmethod
     def player(state: State) -> int:
         """Return the ordinal number of the player to move in the given state."""
-        raise Exception('Not Implemented')
+        raise Exception("Not Implemented")
 
     @staticmethod
     def state_shape() -> Tuple[int, ...]:
-        raise Exception('Not Implemented')
+        raise Exception("Not Implemented")
 
     @staticmethod
     def policy_shape() -> Tuple[int, ...]:
-        raise Exception('Not Implemented')
+        raise Exception("Not Implemented")
 
     @staticmethod
     def eval_size() -> int:
-        raise Exception('Not Implemented')
+        raise Exception("Not Implemented")
 
 
 class Player(Protocol[State, Move]):
@@ -67,7 +66,7 @@ class Player(Protocol[State, Move]):
     """
 
     def __call__(self, state: State, mask: Move) -> Move:
-        raise Exception('Not Implemented')
+        raise Exception("Not Implemented")
 
 
 def play_classical(
@@ -88,7 +87,7 @@ def play_classical(
         at the end of the game, after a terminal state is reached.
     """
     if len(players) == 0:
-        raise ValueError('At least one player is required for a game.')
+        raise ValueError("At least one player is required for a game.")
 
     g = game.new()
 

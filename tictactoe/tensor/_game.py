@@ -21,8 +21,7 @@ def move_mask(state: State) -> Move:
     Returns:
         A 3x3 0-1 array where 1s represent legal moves.
     """
-    return tf.ones(state.shape[:-1]
-                  ) - tf.math.reduce_max(state[:, :, :2], axis=-1)
+    return tf.ones(state.shape[:-1]) - tf.math.reduce_max(state[:, :, :2], axis=-1)
 
 
 @tf.function
@@ -39,14 +38,12 @@ def play_move(state: State, move: Move) -> State:
     changed = tf.reshape(state[:, :, p] + move, shape=(3, 3, 1))
     if p == 0:
         return tf.concat(
-            [changed, state[:, :, 1:2],
-             tf.ones_like(changed)],
+            [changed, state[:, :, 1:2], tf.ones_like(changed)],
             axis=-1,
         )
 
     return tf.concat(
-        [state[:, :, :1], changed,
-         tf.zeros_like(changed)],
+        [state[:, :, :1], changed, tf.zeros_like(changed)],
         axis=-1,
     )
 
@@ -98,12 +95,12 @@ _ALL_KERNELS = tf.concat(
 @tf.function
 def _assign_eval(x: tf.Tensor) -> tf.Tensor:
     if x[0] >= 3:
-        return tf.constant([1., -1.])
+        return tf.constant([1.0, -1.0])
     if x[1] <= -3:
-        return tf.constant([-1., 1.])
+        return tf.constant([-1.0, 1.0])
     if x[2] >= 9:
-        return tf.constant([0., 0.])
-    return tf.constant([float('nan'), float('nan')])
+        return tf.constant([0.0, 0.0])
+    return tf.constant([float("nan"), float("nan")])
 
 
 @tf.function
@@ -126,7 +123,7 @@ def evaluate(state: State) -> tf.Tensor:
         state[:, :, :, :1] - state[:, :, :, 1:2],
         _ALL_KERNELS,
         strides=1,
-        padding='VALID',
+        padding="VALID",
     )
     out = tf.reshape(
         tf.concat(
@@ -142,7 +139,7 @@ def evaluate(state: State) -> tf.Tensor:
                     dtype=tf.float32,
                 ),
             ],
-            axis=-1
+            axis=-1,
         ),
         shape=(-1, 3),
     )

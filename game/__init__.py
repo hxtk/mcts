@@ -10,9 +10,9 @@ State = _game.State
 play_classical = _game.play_classical
 
 __all__ = [
-    'Game',
-    'Move',
-    'Player',
-    'State',
-    'play_classical',
+    "Game",
+    "Move",
+    "Player",
+    "State",
+    "play_classical",
 ]

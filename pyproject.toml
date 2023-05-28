@@ -1,0 +1,30 @@
+[project]
+name = "mcts"
+version="0.1.0a1"
+description = "Monte-Carlo Tree Search"
+authors = [
+    {name = "Peter Sanders"}
+]
+maintainers = [
+    {name = "Peter Sanders"}
+]
+dependencies = [
+    "tensorflow>=2.11.0",
+    "tqdm",
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pylint",
+    "black",
+    "pre-commit",
+    "pytest",
+]
+
+[tool.black]
+line_length = 80

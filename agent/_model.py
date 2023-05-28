@@ -22,8 +22,8 @@ def residual_model(
     x = tf.keras.layers.Conv2D(
         residual_conv_filters,
         residual_kernel_size,
-        activation='relu',
-        padding='same',
+        activation="relu",
+        padding="same",
     )(inputs)
 
     residual_in = x
@@ -31,14 +31,14 @@ def residual_model(
         x = tf.keras.layers.Conv2D(
             residual_conv_filters,
             residual_kernel_size,
-            padding='same',
+            padding="same",
         )(x)
         x = tf.keras.layers.BatchNormalization()(x)
         x = tf.keras.layers.ReLU()(x)
         x = tf.keras.layers.Conv2D(
             residual_conv_filters,
             residual_kernel_size,
-            padding='same',
+            padding="same",
         )(x)
         x = tf.keras.layers.BatchNormalization()(x)
         x = tf.keras.layers.Add()([x, residual_in])
@@ -58,25 +58,23 @@ def residual_model(
 
 def _policy_head(shape: Sequence[int]) -> List[tf.keras.layers.Layer]:
     return [
-        tf.keras.layers.Conv2D(2, 1, padding='same'),
+        tf.keras.layers.Conv2D(2, 1, padding="same"),
         tf.keras.layers.BatchNormalization(),
         tf.keras.layers.ReLU(),
         tf.keras.layers.Flatten(),
         tf.keras.layers.Dense(np.prod(shape)),
         tf.keras.layers.Softmax(),
-        tf.keras.layers.Reshape(shape, name='policy'),
+        tf.keras.layers.Reshape(shape, name="policy"),
     ]
 
 
 def _value_head(shape: Sequence[int]) -> List[tf.keras.layers.Layer]:
     return [
-        tf.keras.layers.Conv2D(1, 1, padding='same'),
+        tf.keras.layers.Conv2D(1, 1, padding="same"),
         tf.keras.layers.BatchNormalization(),
         tf.keras.layers.ReLU(),
         tf.keras.layers.Flatten(),
-        tf.keras.layers.Dense(64, activation='relu'),
-        tf.keras.layers.Dense(
-            np.prod(shape), activation=tf.keras.activations.tanh
-        ),
-        tf.keras.layers.Reshape(shape, name='value')
+        tf.keras.layers.Dense(64, activation="relu"),
+        tf.keras.layers.Dense(np.prod(shape), activation=tf.keras.activations.tanh),
+        tf.keras.layers.Reshape(shape, name="value"),
     ]

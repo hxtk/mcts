@@ -7,7 +7,6 @@ from tictactoe import tensor
 
 
 class PathModelStore(object):
-
     def __init__(self, path: str) -> None:
         self.path = path
 
@@ -26,12 +25,12 @@ class PathModelStore(object):
 
 
 def main():
-    ms = PathModelStore('model/')
+    ms = PathModelStore("model/")
     model = ms.load_model()
 
     print(model.summary())
     for x in [0.02, 0.002, 0.0002, 0.00002]:
-        logging.info(f'learning_rate={x}')
+        logging.info(f"learning_rate={x}")
         agent.train(
             model,
             tensor,
@@ -44,6 +43,6 @@ def main():
         )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
     main()

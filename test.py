@@ -16,5 +16,5 @@ def main():
     agent.training_batch(model, ttt, 10, 10, node_count=10)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

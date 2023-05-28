@@ -9,7 +9,6 @@ import tictactoe.tensor as ttt
 
 
 class PathModelStore(object):
-
     def __init__(self, path: str) -> None:
         self.path = path
 
@@ -21,13 +20,13 @@ class PathModelStore(object):
 
 
 def main():
-    ms = PathModelStore('model/')
+    ms = PathModelStore("model/")
     try:
         model = ms.load_model()
-        logging.info('Loaded model successfully.')
+        logging.info("Loaded model successfully.")
     except IOError:
         model = agent.residual_model(ttt)
-        logging.info('Constructed new model.')
+        logging.info("Constructed new model.")
 
     human = ttt.players.TextIOPlayer()
     cpu = agent.MCTSPlayer(
@@ -40,6 +39,6 @@ def main():
     print(game.play_classical(ttt, [human, cpu]))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     main()
