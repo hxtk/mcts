@@ -3,7 +3,7 @@ import unittest
 
 import tensorflow as tf
 
-from tictactoe.tensor import _game
+from mcts.tictactoe.tensor import _game
 
 
 class TestPlayMove(unittest.TestCase):
@@ -50,55 +50,16 @@ class TestEvaluate(unittest.TestCase):
         boards = tf.scatter_nd(
             indices=[[y, x, y, 0] for x in range(3) for y in range(3)],
             updates=[1.0 for _ in range(9)],
-            shape=(3,) + _game.state_shape(),
+            shape=(3, *_game.state_shape()),
         )
         self.assertTrue(
             tf.math.reduce_all(
-                tf.math.equal(_game.evaluate(boards), [[1.0, -1.0] for _ in range(3)]),
+                tf.math.equal(
+                    _game.evaluate(boards),
+                    [[1.0, -1.0] for _ in range(3)],
+                ),
             ),
         )
-
-    def test_x_col(self):
-        board = np.zeros((2, 3, 3))
-        for x in range(3):
-            board[0][x][0] = 1
-        self.assertEqual(_game.evaluate(board), [1, -1])
-
-    def test_x_eye(self):
-        board = np.zeros((2, 3, 3))
-        for x in range(3):
-            board[0][x][x] = 1
-        self.assertEqual(_game.evaluate(board), [1, -1])
-
-    def test_x_diagonal(self):
-        board = np.zeros((2, 3, 3))
-        for x in range(3):
-            board[0][x][2 - x] = 1
-        self.assertEqual(_game.evaluate(board), [1, -1])
-
-    def test_o_row(self):
-        board = np.zeros((2, 3, 3))
-        for x in range(3):
-            board[1][0][x] = 1
-        self.assertEqual(_game.evaluate(board), [-1, 1])
-
-    def test_o_col(self):
-        board = np.zeros((2, 3, 3))
-        for x in range(3):
-            board[1][x][0] = 1
-        self.assertEqual(_game.evaluate(board), [-1, 1])
-
-    def test_o_eye(self):
-        board = np.zeros((2, 3, 3))
-        for x in range(3):
-            board[1][x][x] = 1
-        self.assertEqual(_game.evaluate(board), [-1, 1])
-
-    def test_o_diagonal(self):
-        board = np.zeros((2, 3, 3))
-        for x in range(3):
-            board[1][x][2 - x] = 1
-        self.assertEqual(_game.evaluate(board), [-1, 1])
 
 
 if __name__ == "__main__":

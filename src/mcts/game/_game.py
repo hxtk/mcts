@@ -18,17 +18,17 @@ class Game(Protocol[State, Move, Evaluation]):
         The returned array MUST be of the same shape as the input accepted by
         `play_move`.
         """
-        raise Exception("Not Implemented")
+        raise NotImplementedError()
 
     @staticmethod
     def new() -> State:
         """Return an initial game state."""
-        raise Exception("Not Implemented")
+        raise NotImplementedError()
 
     @staticmethod
     def play_move(state: State, move: Move) -> State:
         """Modify the state of the game to record `move` being played."""
-        raise Exception("Not Implemented")
+        raise NotImplementedError()
 
     @staticmethod
     def evaluate(state: State) -> Evaluation:
@@ -38,24 +38,24 @@ class Game(Protocol[State, Move, Evaluation]):
             None if the game is not a terminal state; otherwise returns the
             evaluation of the position for the first player.
         """
-        raise Exception("Not Implemented")
+        raise NotImplementedError()
 
     @staticmethod
     def player(state: State) -> int:
-        """Return the ordinal number of the player to move in the given state."""
-        raise Exception("Not Implemented")
+        """Return the index of the player to move in the given state."""
+        raise NotImplementedError()
 
     @staticmethod
     def state_shape() -> Tuple[int, ...]:
-        raise Exception("Not Implemented")
+        raise NotImplementedError()
 
     @staticmethod
     def policy_shape() -> Tuple[int, ...]:
-        raise Exception("Not Implemented")
+        raise NotImplementedError()
 
     @staticmethod
     def eval_size() -> int:
-        raise Exception("Not Implemented")
+        raise NotImplementedError()
 
 
 class Player(Protocol[State, Move]):
@@ -66,7 +66,25 @@ class Player(Protocol[State, Move]):
     """
 
     def __call__(self, state: State, mask: Move) -> Move:
-        raise Exception("Not Implemented")
+        raise NotImplementedError()
+
+
+class InsufficientPlayersError(ValueError):
+    """Exception indicating not enough players were provided for the game."""
+
+    def __init__(
+        self,
+        got: int,
+        minimum: int = 1,
+    ) -> None:
+        super().__init__(f"need at least {minimum} players; got {got}")
+
+
+class GameAlreadyOverError(Exception):
+    """Exception indicating that the game has ended and cannot be played."""
+
+    def __init__(self):
+        super().__init__("cannot play play in a game that had already ended")
 
 
 def play_classical(
@@ -87,7 +105,7 @@ def play_classical(
         at the end of the game, after a terminal state is reached.
     """
     if len(players) == 0:
-        raise ValueError("At least one player is required for a game.")
+        raise InsufficientPlayersError(len(players))
 
     g = game.new()
 

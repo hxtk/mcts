@@ -8,10 +8,20 @@ from typing import Optional
 from typing import Tuple
 
 import numpy as np
-import tensorflow as tf
 
-import game
-from tictactoe.tensor import _game
+from mcts import game
+from mcts.tictactoe import _game
+
+
+def _coordinate_policy(row: int, col: Optional[int] = None) -> game.Move:
+    if col is None:
+        move = np.zeros(9)
+        move[row] = 1.0
+        return move.reshape((3, 3))
+
+    move = np.zeros((3, 3))
+    move[row][col] = 1
+    return move
 
 
 def _hash_state(state: game.State) -> int:
@@ -27,7 +37,7 @@ def _render_board(state: game.State):
     """Print the tic-tac-toe board as ASCII text."""
     line = "+-+-+-+\n"
     out = line
-    for row in (state[:, :, 0] - state[:, :, 1]).numpy():
+    for row in state[0] - state[1]:
         out += "|"
         for cell in row:
             out += ["O", " ", "X"][int(cell + 1)] + "|"
@@ -50,6 +60,7 @@ def _read_line(
             /[012][ ,][012]/. Lines not matching that regex will be ignored.
         out: output stream to which prompts shall be printed. These prompts MAY
             change and SHOULD NOT be parsed.
+        mask: a 0-1 tensor with 1s representing legal moves.
 
     Returns:
         A tuple corresponding to the row and column in which to play.
@@ -64,9 +75,14 @@ def _read_line(
         print("Format: [row] SPACE [col]\nExample: 0 2", file=out)
         return _read_line(source, out, mask)
 
+    shape = _game.policy_shape()
     row_n = int(row)
     col_n = int(col)
-    if not 0 <= row_n < 3 or not 0 <= col_n < 3 or mask[row_n][col_n] == 0:
+    if (
+        not 0 <= row_n < shape[0]
+        or not 0 <= col_n < shape[1]
+        or mask[row_n][col_n] == 0
+    ):
         print(f"{row_n} {col_n} is not a legal move. Try another:", file=out)
         return _read_line(source, out, mask)
 
@@ -84,19 +100,12 @@ class TextIOPlayer(object):
         """Implements the game.Player interface."""
         print(_render_board(state), file=self._out)
 
-        if state[2][0][0] == 0:
-            player = "X"
-        else:
-            player = "O"
+        player = "X" if state[2][0][0] == 0 else "O"
 
         print(f"{player} to play ([row] [col]): ", file=self._out)
         row, col = _read_line(self._in, self._out, mask)
 
-        return tf.scatter_nd(
-            indices=[[row, col]],
-            updates=[1.0],
-            shape=_game.policy_shape(),
-        )
+        return _coordinate_policy(row, col)
 
 
 class RandomPlayer(object):
@@ -107,19 +116,18 @@ class RandomPlayer(object):
 
     def __call__(self, _: game.State, mask: game.Move) -> game.Move:
         """Implements the game.Player interface."""
-        ps = (tf.reshape(mask, (9,)) / tf.math.count_nonzero(mask)).numpy()
+        ps = mask.flatten() / np.count_nonzero(mask)
 
         # pylint: disable=unbalanced-tuple-unpacking
-        index = np.unravel_index(
+        row, col = np.unravel_index(
             np.random.choice(mask.size, p=ps),
             mask.shape,
         )
 
-        return tf.scatter_nd(
-            indices=[index],
-            updates=[1.0],
-            shape=_game.policy_shape(),
-        )
+        move = np.zeros(mask.shape)
+        move[row][col] = 1
+
+        return move
 
 
 class MinMaxPlayer(object):
@@ -142,11 +150,11 @@ class MinMaxPlayer(object):
 
         evaluation = _game.evaluate(state)
         if evaluation is not None:
-            value = evaluation[state[2][0][0]]
+            value = evaluation[int(state[2][0][0])]
             self.value_cache[sh] = (value, None)
             return (value / depth), None
 
-        values = tf.zeros_like(mask)
+        values = np.zeros(mask.size)
         for i, x in enumerate(mask.flatten()):
             if x == 0:
                 # Illegal moves are worse than losing.
@@ -164,7 +172,7 @@ class MinMaxPlayer(object):
                 depth + 1.0,
             )[0]
 
-        value = float(values.max())
+        value = float(values.max(initial=float("-inf")))
         move = values.argmax()
         self.value_cache[sh] = (value, int(move))
         return (value / depth), int(move)
@@ -173,6 +181,6 @@ class MinMaxPlayer(object):
         val, move = self.value(state, mask)
         print(f"Evaluation: {val}")
         if move is None:
-            raise ValueError("Invoked player on a game that was already over.")
+            raise game.GameAlreadyOverError()
 
         return _coordinate_policy(move)

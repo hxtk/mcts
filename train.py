@@ -2,11 +2,11 @@ import logging
 
 import tensorflow as tf
 
-import agent
-from tictactoe import tensor
+from mcts import agent
+from mcts.tictactoe import tensor
 
 
-class PathModelStore(object):
+class PathModelStore(object):  # noqa: D101
     def __init__(self, path: str) -> None:
         self.path = path
 
@@ -24,13 +24,13 @@ class PathModelStore(object):
         model.save(self.path, overwrite=True)
 
 
-def main():
+def main() -> None:
     ms = PathModelStore("model/")
     model = ms.load_model()
 
     print(model.summary())
     for x in [0.02, 0.002, 0.0002, 0.00002]:
-        logging.info(f"learning_rate={x}")
+        logging.info("learning_rate=%f", x)
         agent.train(
             model,
             tensor,

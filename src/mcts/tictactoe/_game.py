@@ -1,15 +1,18 @@
 """Module implemeting game.Game for Tic-Tac-Toe."""
 import enum
-from typing import List, Tuple
+from typing import List
 from typing import Optional
+from typing import Tuple
 
 import numpy as np
 import numpy.typing as npt
 
+DIM = 3  # The dimension of the board
+
 
 class EndState(enum.Enum):
     X = 1
-    O = -1
+    O = -1  # noqa: E741
     DRAW = 0
 
 
@@ -72,20 +75,18 @@ def evaluate(state: State) -> Optional[List[float]]:
             1s if it is Xs turn; otherwise it is all 0s.
 
     Returns:
-        None if the game is not in a terminal state.
-        Otherwise returns a list representing the evaluation for X and O,
-        respectively. A victory for X is [1, -1], a victory for O is [-1, 1],
-        and a draw is [0, 0].
+        None if the game is not in a terminal state; otherwise returns a list
+        representing the evaluation for X and O, respectively. A victory for X
+        is [1, -1], a victory for O is [-1, 1], and a draw is [0, 0].
     """
     evaluation = _evaluate(state[0:2])
     if evaluation is None:
         return None
-    elif evaluation is EndState.X:
+    if evaluation is EndState.X:
         return [1, -1]
-    elif evaluation is EndState.O:
+    if evaluation is EndState.O:
         return [-1, 1]
-    else:
-        return [0, 0]
+    return [0, 0]
 
 
 def state_shape() -> Tuple[int]:
@@ -106,23 +107,25 @@ def _evaluate(board: State) -> Optional[EndState]:
         val = np.apply_along_axis(np.sum, dim, board)
         if np.max(val[0]) == extreme:
             return EndState.X
-        elif np.max(val[1]) == extreme:
+        if np.max(val[1]) == extreme:
             return EndState.O
 
     if board[0][1][1] + board[1][1][1] == 0:
         return None
 
     diagonals = np.trace(board, axis1=1, axis2=2)
-    if diagonals[0] == 3:
+    if diagonals[0] == DIM:
         return EndState.X
-    if diagonals[1] == 3:
+    if diagonals[1] == DIM:
         return EndState.O
 
     diagonals = np.trace(np.flip(board, 2), axis1=1, axis2=2)
-    if diagonals[0] == 3:
+    if diagonals[0] == DIM:
         return EndState.X
-    if diagonals[1] == 3:
+    if diagonals[1] == DIM:
         return EndState.O
 
     if np.count_nonzero(board) == 9:
         return EndState.DRAW
+
+    return None

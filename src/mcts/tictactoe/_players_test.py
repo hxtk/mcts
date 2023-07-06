@@ -2,8 +2,8 @@ import unittest
 
 import numpy as np
 
-from tictactoe import _game
-from tictactoe import _players
+from mcts.tictactoe import _game
+from mcts.tictactoe import _players
 
 
 class TestMinMaxPlayer(unittest.TestCase):
@@ -29,7 +29,7 @@ class TestMinMaxPlayer(unittest.TestCase):
                     [1, 1, 1],
                     [1, 1, 1],
                 ],
-            ]
+            ],
         )
         value, move = self.engine.value(
             board,
@@ -58,7 +58,7 @@ class TestMinMaxPlayer(unittest.TestCase):
                     [0, 0, 0],
                     [0, 0, 0],
                 ],
-            ]
+            ],
         )
         value, move = self.engine.value(
             board,
@@ -89,7 +89,7 @@ class TestMinMaxPlayer(unittest.TestCase):
                     [1, 1, 1],
                     [1, 1, 1],
                 ],
-            ]
+            ],
         )
         value, move = self.engine.value(
             board,

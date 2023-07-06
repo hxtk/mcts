@@ -1,5 +1,5 @@
-from tictactoe.tensor import _game
-from tictactoe.tensor import _players
+from mcts.tictactoe import _game
+from mcts.tictactoe import _players
 
 players = _players
 

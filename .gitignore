@@ -1,5 +1,18 @@
+# Virtual Environment
 /venv
+
+# Python bytecode
 **/*.pyc
 **/__pycache__/
+
+# Output files
 /data/
+
+# IDE configuration files
 /.idea/
+/.vscode/
+
+# Build artifacts
+/build
+/dist
+*.egg-info

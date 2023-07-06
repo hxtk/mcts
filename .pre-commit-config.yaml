@@ -1,15 +1,17 @@
 # File introduces automated checks triggered on git events
 # to enable run `pip install pre-commit && pre-commit install`
 
+fail_fast: true
+
 repos:
-  - repo: local
+  - repo: https://github.com/psf/black
+    rev: 23.3.0
     hooks:
-      - id: yapf
-        name: yapf
-        language: python
-        entry: yapf
-        args: [-i, -vv]
-        types: [python]
+      - id: black
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.0.276
+    hooks:
+      - id: ruff
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v3.2.0
     hooks:
@@ -21,9 +23,16 @@ repos:
       - id: debug-statements
       - id: requirements-txt-fixer
       - id: check-merge-conflict
-      - id: double-quote-string-fixer
       - id: end-of-file-fixer
 #      - id: sort-simple-yaml
+  - repo: local
+    hooks:
+      - id: pytest
+        name: pytest
+        language: python
+        entry: pytest
+        pass_filenames: false
+        always_run: true
   - repo: meta
     hooks:
       - id: check-hooks-apply

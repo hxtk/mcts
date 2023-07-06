@@ -1,8 +1,9 @@
 """Generalized framework for Games."""
-from game import _game
+from mcts.game import _game
 
 Evaluation = _game.Evaluation
 Game = _game.Game
+GameAlreadyOverError = _game.GameAlreadyOverError
 Move = _game.Move
 Player = _game.Player
 State = _game.State

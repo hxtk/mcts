@@ -1,6 +1,5 @@
 """Module implementing game.Game for Tic-Tac-Toe."""
-from typing import List, Tuple
-from typing import Optional
+from typing import Tuple
 
 import tensorflow as tf
 
@@ -21,7 +20,10 @@ def move_mask(state: State) -> Move:
     Returns:
         A 3x3 0-1 array where 1s represent legal moves.
     """
-    return tf.ones(state.shape[:-1]) - tf.math.reduce_max(state[:, :, :2], axis=-1)
+    return tf.ones(state.shape[:-1]) - tf.math.reduce_max(
+        state[:, :, :2],
+        axis=-1,
+    )
 
 
 @tf.function
@@ -118,7 +120,7 @@ def evaluate(state: State) -> tf.Tensor:
         respectively. A victory for X is [1, -1], a victory for O is [-1, 1],
         and a draw is [0, 0].
     """
-    state = tf.reshape(state, (-1,) + state_shape())
+    state = tf.reshape(state, (-1, *state_shape()))
     out = tf.nn.conv2d(
         state[:, :, :, :1] - state[:, :, :, 1:2],
         _ALL_KERNELS,

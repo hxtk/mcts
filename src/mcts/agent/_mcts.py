@@ -8,7 +8,7 @@ from typing import Tuple
 import numpy as np
 import tensorflow as tf
 
-import game
+from mcts import game
 
 State = tf.Tensor
 Move = tf.Tensor
@@ -16,7 +16,7 @@ Evaluation = tf.Tensor
 
 
 class Reference(Protocol):
-    def __hash__(self) -> Any:
+    def __hash__(self) -> Any:  # noqa: ANN401, inheriting builtin type.
         pass
 
     def deref(self) -> tf.Tensor:
@@ -81,11 +81,12 @@ class TreeNode(object):
                 ),
                 depth=np.prod(policy_shape),
             ),
-            shape=(-1,) + policy_shape,
+            shape=(-1, *policy_shape),
         )
         for move in legal_policies:
             state = tf.reshape(
-                self.g.play_move(self.state, move), shape=(1,) + self.g.state_shape()
+                self.g.play_move(self.state, move),
+                shape=(1, *self.g.state_shape()),
             )
             mask = self.g.move_mask(state[0])
             states.append((move, state, mask))
@@ -137,7 +138,7 @@ class TreeNode(object):
         p: float = 0,
     ) -> "TreeNode":
         mask = g.move_mask(state)
-        inputs = tf.reshape(state, (1,) + g.state_shape())
+        inputs = tf.reshape(state, (1, *g.state_shape()))
         policy, value = model(inputs)
         policy = tf.reshape(policy, mask.shape)
         evaluation = g.evaluate(state)[0]

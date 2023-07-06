@@ -9,6 +9,7 @@ maintainers = [
     {name = "Peter Sanders"}
 ]
 dependencies = [
+    "numpy",
     "tensorflow>=2.11.0",
     "tqdm",
 ]
@@ -18,13 +19,201 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 
+# Dependencies for optional features of this package may be declared here.
+# For example, the dependencies which are needed for development but not
+# running the code in production have been added to the [dev] optional
+# dependency group.
 [project.optional-dependencies]
-dev = [
-    "pylint",
-    "black",
+dev = [  # Optional dependencies to support development
+    "pip>=21.2.0",
     "pre-commit",
+    "mcts[lint,test,types]"
+]
+lint = [  # Optional dependencies to support code style enforcement
+    "black",
+    "isort",
+    "pydocstyle",
+    "pylint",
+    "ruff",
+]
+test = [  # Optional dependencies to support automated testing
+    "coverage",
     "pytest",
+]
+types = [  # Optional dependencies to support type checking
+    "mypy",
 ]
 
 [tool.black]
-line_length = 80
+# This corresponds to the line length limit specified in the Google Python
+# Style Guide: https://google.github.io/styleguide/pyguide.html
+line-length = 80
+target-version = ["py38"]
+
+[tool.isort]
+py_version=38
+force_single_line = true
+
+[tool.mypy]
+mypy_path = "mypy_stubs"
+
+[tool.pydocstyle]
+convention = "google"
+
+[tool.pytest.ini_options]
+addopts = "--doctest-modules"
+doctest_optionflags = "NORMALIZE_WHITESPACE ELLIPSIS"
+
+[tool.ruff]
+line-length = 80
+
+select = [
+    # Enforce type annotations.
+    "ANN",
+
+    # Ensure that blocking operations are not performed in async code.
+    "ASYNC",
+
+    # Enforcing trailing commas on multi-line lists gives visual consistency and
+    # reduces the diff when adding a new item to the list (purely additive diff
+    # instead of replacing the preceding line with one that has a training
+    # comma).
+    "COM",
+
+    # Ensure docstrings follow the prescribed style.
+    "D",
+
+    # Timezone-unaware datetime objects are incomparable with datetime-aware
+    # ones, so for consistency and to avoid discarding information, all
+    # datetime objects must be timezone-aware by default, requiring an explicit
+    # rejection of timezone information if it is not needed.
+    "DTZ",
+
+    # Pycodestyle errors
+    "E",
+
+    # Delete dead code instead of commenting it out. When deleting code, explain
+    # the decision to remove it in the commit message instead of heading with a
+    # comment that explains why it is removed.
+    "ERA",
+
+    # Pyflakes lints. These are usually either some kind of error or issues
+    # affecting code readability.
+    "F",
+
+    # Logging has its own formatting that retains more information for longer,
+    # which things such as logging filters or handlers can use to provide extra
+    # functionality. This lint ensures strings are not being formatted
+    # specifically to feed to the logger.
+    "G",
+
+    # Sort imports and enforce one import per line in order to make it easier to
+    # find the origin of an imported name and minimize the diff when new names
+    # are imported or previously-imported names are removed.
+    "I",
+
+    # Forbid implicit namespace packages. Use an __init__.py to explicitly
+    # mark a folder as a package and control the exported names of that
+    # package. This ensures a single source where consumers of a package
+    # can clearly see what constitutes the "public API" to which any
+    # stability guarantees might apply.
+    "INP",
+
+    # Enforce PEP8 naming.
+    "N",
+
+    # This subset of pylint checks is conservative enough to have no
+    # false positives. It will always speed up or simplify code with no
+    # downside to fix these errors.
+    "PLC",
+
+    # These pylints are errors: things that are invalid somehow despite being
+    # syntactically well-formed.
+    "PLE",
+
+    # Identify areas where an object is being compared with itself.
+    "PLR0124",
+
+    # Identify areas where two constants are compared.
+    "PLR0133",
+
+    # Identify properties with parameters, which typically are cleaner as
+    # regular member functions instead of properties. A property annotation
+    # communicates that a function can be thought of as a public data member
+    # of the class.
+    "PLR0206",
+
+    # Identify areas where an import alias has the same effect as a `from`
+    # import.
+    "PLR0402",
+
+    # Do not alias `sys.exit` so that points where the code exits are easy to
+    # identify.
+    "PLR1722",
+
+    # Prefer documented, named constants instead of "magic values" so that
+    # readers will understand the intent of the comparison more easily, and
+    # can more easily identify if a constant does not match that intent in
+    # bug finding.
+    "PLR2004",
+
+    # Ensure that it is always clear when control flow returns and what value
+    # is being returned, if any.
+    "RET",
+
+    # Ruff-specific rules that identify ambiguities, likely bugs, and
+    # use of deprecated code.
+    "RUF",
+
+    # Identify areas where code is unnecessarily nested or contains logical
+    # expressions that can be trivially simplified to a more readable form.
+    "SIM",
+
+    # Forbid relative imports in compliance with Google style. Use an editable
+    # install of the local development package in order to allow absolute
+    # imports to resovle for development purposes and ensure import invariance
+    # when code is moved in reorganizations or refactors.
+    "TID",
+
+    # Ensure custom exceptions are used in the most egregious cases and ensure
+    # that custom exceptions provide the functionality needed by their
+    # consumers to communicate as much information as necessary. Discarding
+    # information by rendering exception metadata into the message string turns
+    # the message string into a de-facto API. Provide programatic access to any
+    # data worth exposing as a string to prevent consumers from needing to
+    # parse the string.
+    "TRY",
+]
+
+ignore = [
+    "ANN101",  # We do not require type annotations for the "self" parameter.
+    "ANN102",  # We do not require type annotations for the "cls" parameter.
+    "ANN202",  # We do not require typing private functions.
+    "ANN204",  # We do not require return type on __init__ method.
+    # We ignore some of the missing documentation errors because pydocstyle
+    # disagrees with this project structure on what constitutes a "public"
+    # name for a module: namely, a package usually consists of one or more
+    # private modules and an __init__.py that chooses from among the public
+    # names of those modules to export as public names of the package.
+    # Pydocstyle considers the public names of private modules to require
+    # documentation.
+    "D100",
+    "D102",
+    "D103",
+    "D104",
+    "D107",
+
+    "PLR2004",
+]
+
+[tool.ruff.flake8-tidy-imports]
+# Disallow all relative imports.
+ban-relative-imports = "all"
+
+[tool.ruff.isort]
+force-single-line = true  # Force single line in compliance with Google style.
+known-first-party = ["mcts"]  # You may have to explicitly add local packages.
+order-by-type = false  # mix from, alias, and regular imports.
+
+[tool.ruff.pydocstyle]
+convention = "google"

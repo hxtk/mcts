@@ -3,12 +3,12 @@ import logging
 
 import tensorflow as tf
 
-import agent
-import game
-import tictactoe.tensor as ttt
+import mcts.tictactoe.tensor as ttt
+from mcts import agent
+from mcts import game
 
 
-class PathModelStore(object):
+class PathModelStore(object):  # noqa: D101
     def __init__(self, path: str) -> None:
         self.path = path
 
@@ -19,7 +19,7 @@ class PathModelStore(object):
         model.save(self.path, overwrite=True)
 
 
-def main():
+def main() -> None:
     ms = PathModelStore("model/")
     try:
         model = ms.load_model()

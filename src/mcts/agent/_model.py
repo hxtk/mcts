@@ -1,10 +1,11 @@
 """Model construction to evaluate game states."""
 from typing import List
 from typing import Sequence
+
 import numpy as np
 import tensorflow as tf
 
-import game
+from mcts import game
 
 State = tf.Tensor
 Move = tf.Tensor
@@ -14,9 +15,9 @@ Evaluation = tf.Tensor
 def residual_model(
     g: game.Game[State, Move, Evaluation],
     *,
-    residual_layers=1,
-    residual_conv_filters=8,
-    residual_kernel_size=3,
+    residual_layers: int = 1,
+    residual_conv_filters: int = 8,
+    residual_kernel_size: int = 3,
 ) -> tf.keras.Model:
     inputs = tf.keras.layers.Input(shape=g.state_shape())
     x = tf.keras.layers.Conv2D(
@@ -52,8 +53,7 @@ def residual_model(
     for layer in _value_head([g.eval_size()]):
         value = layer(value)
 
-    model = tf.keras.Model(inputs, [policy, value])
-    return model
+    return tf.keras.Model(inputs, [policy, value])
 
 
 def _policy_head(shape: Sequence[int]) -> List[tf.keras.layers.Layer]:
@@ -75,6 +75,9 @@ def _value_head(shape: Sequence[int]) -> List[tf.keras.layers.Layer]:
         tf.keras.layers.ReLU(),
         tf.keras.layers.Flatten(),
         tf.keras.layers.Dense(64, activation="relu"),
-        tf.keras.layers.Dense(np.prod(shape), activation=tf.keras.activations.tanh),
+        tf.keras.layers.Dense(
+            np.prod(shape),
+            activation=tf.keras.activations.tanh,
+        ),
         tf.keras.layers.Reshape(shape, name="value"),
     ]

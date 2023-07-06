@@ -1,16 +1,15 @@
 import logging
 import random
-from typing import Generator
 from typing import List
 from typing import Protocol
-from typing import Tuple
 
 import numpy as np
 import tensorflow as tf
 import tqdm
 
-from agent import _agent
-import game
+from mcts import game
+from mcts import gym
+from mcts.agent import _agent
 
 State = tf.Tensor
 Move = tf.Tensor
@@ -72,7 +71,9 @@ def train(
     _retry_count: int = 0,
 ) -> tf.keras.Model:
     model.compile(
-        optimizer=tf.keras.optimizers.experimental.SGD(learning_rate=learning_rate),
+        optimizer=tf.keras.optimizers.experimental.SGD(
+            learning_rate=learning_rate,
+        ),
         loss=[
             tf.keras.losses.CategoricalCrossentropy(),
             tf.keras.losses.MeanSquaredError(),
@@ -125,25 +126,27 @@ def train(
 
 
 def training_game(
-    store: ModelStore,
+    model: tf.keras.Model,
     g: game.Game[tf.Tensor, tf.Tensor, tf.Tensor],
     alpha: float,
     temperature: float,
     node_count: int,
-    reload_interval: int = 100,
-) -> Generator[Tuple[tf.Tensor, tf.Tensor, tf.Tensor], None, None]:
-    while True:
-        model = store.load_model()
-        for _ in range(reload_interval):
-            player = _agent.TreeNodePlayer(
-                g,
-                model,
-                limit=node_count,
-                temperature=temperature,
-                alpha=alpha,
-            )
-            outcome = game.play_classical(g, [player])
-            outcome = tf.repeat(outcome, len(player.states))
+    w: gym.ReplayWriter,
+) -> None:
+    players = [
+        _agent.TreeNodePlayer(
+            g,
+            model,
+            limit=node_count,
+            temperature=temperature,
+            alpha=alpha,
+        )
+        for _ in range(g.eval_size())
+    ]
+    outcome = game.play_classical(g, players)
+    for player in players:
+        for state, move in zip(player.states, player.moves):
+            w.add(state, move, outcome)
 
 
 def training_batch(

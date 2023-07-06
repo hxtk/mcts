@@ -1,17 +1,15 @@
 """game.Player implementation using MCTS."""
 import datetime
-import logging
 from typing import List
 from typing import Optional
 from typing import Protocol
-from typing import Tuple
 from typing import Union
 
 import numpy as np
 import tensorflow as tf
 
-import game
-from agent import _mcts
+from mcts import game
+from mcts.agent import _mcts
 
 State = tf.Tensor
 Move = tf.Tensor
@@ -26,7 +24,7 @@ class LimitCondition(Protocol):
             True if the limiting condition has not been reached.
             False otherwise.
         """
-        raise Exception("Not implemented")
+        raise NotImplementedError()
 
 
 class TimeLimit(object):
@@ -42,7 +40,7 @@ class TimeLimit(object):
             True if the current time is before the end time.
             False otherwise.
         """
-        return datetime.datetime.utcnow() < self.end
+        return datetime.datetime.now(tz=datetime.UTC) < self.end
 
 
 class CountLimit(object):
@@ -113,7 +111,9 @@ class TreeNodePlayer(object):
         if isinstance(self.limit, int):
             limit = CountLimit(self.limit)
         elif isinstance(self.limit, datetime.timedelta):
-            limit = TimeLimit(datetime.datetime.utcnow() + self.limit)
+            limit = TimeLimit(
+                datetime.datetime.now(tz=datetime.UTC) + self.limit,
+            )
         else:
             limit = self.limit
 

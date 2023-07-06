@@ -3,7 +3,7 @@ import unittest
 
 import numpy as np
 
-from tictactoe import _game
+from mcts.tictactoe import _game
 
 
 class TestPlayMove(unittest.TestCase):
@@ -17,7 +17,7 @@ class TestPlayMove(unittest.TestCase):
                     [1, 0, 0],
                     [0, 0, 0],
                     [0, 0, 0],
-                ]
+                ],
             ),
         )
 
