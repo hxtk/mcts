@@ -35,7 +35,7 @@ def _infer_batch(
 
 
 @dataclasses.dataclass
-class TreeNode(object):
+class TreeNode:
     g: game.Game[State, Move, Evaluation]
     model: tf.keras.Model
     parent: Optional["TreeNode"]

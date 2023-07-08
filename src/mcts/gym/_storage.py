@@ -10,7 +10,7 @@ from mcts import agent
 from mcts import game
 
 
-class PathModelStore(object):
+class PathModelStore:
     def __init__(self, path: str, g: game.Game) -> None:
         self.g = g
         self.path = path
@@ -25,12 +25,17 @@ class PathModelStore(object):
                 residual_conv_filters=32,
             )
 
+    def save_model(self, model: tf.keras.Model) -> None:
+        model.save(self.path)
+
 
 def _tensor_to_feature(t: tf.Tensor) -> tf.train.Feature:
-    return tf.train.BytesList(
-        value=[
-            tf.io.serialize_tensor(t).numpy(),
-        ],
+    return tf.train.Feature(
+        bytes_list=tf.train.BytesList(
+            value=[
+                tf.io.serialize_tensor(t).numpy(),
+            ],
+        ),
     )
 
 
@@ -81,9 +86,12 @@ class Storage:
         self.base_path = base_path
 
     def writer(self) -> ReplayWriter:
+        self.base_path.mkdir(exist_ok=True)
         return ReplayWriter(
             tf.io.TFRecordWriter(
-                self.base_path.joinpath(str(uuid6.uuid7()) + ".record"),
+                os.fspath(
+                    self.base_path.joinpath(str(uuid6.uuid7()) + ".record"),
+                ),
             ),
         )
 
@@ -108,5 +116,8 @@ class Storage:
 
     def get_dataset(self, size: int) -> tf.data.TFRecordDataset:
         return tf.data.TFRecordDataset(
-            sorted(os.listdir(self.base_path))[:size],
-        ).map(self._decode_fn)
+            sorted(
+                os.path.join(self.base_path, x)
+                for x in os.listdir(self.base_path)
+            )[:size],
+        )  # .map(self._decode_fn)

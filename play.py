@@ -8,7 +8,7 @@ from mcts import agent
 from mcts import game
 
 
-class PathModelStore(object):  # noqa: D101
+class PathModelStore:  # noqa: D101
     def __init__(self, path: str) -> None:
         self.path = path
 

@@ -89,7 +89,7 @@ def _read_line(
     return row_n, col_n
 
 
-class TextIOPlayer(object):
+class TextIOPlayer:
     """Tic-Tac-Toe Player that uses text IO to obtain moves."""
 
     def __init__(self, in_: IO = sys.stdin, out: Optional[IO] = sys.stdout):
@@ -108,7 +108,7 @@ class TextIOPlayer(object):
         return _coordinate_policy(row, col)
 
 
-class RandomPlayer(object):
+class RandomPlayer:
     """Tic-Tac-Toe Player that makes uniform random moves."""
 
     def __init__(self, rand: random.Random = random.SystemRandom()):
@@ -130,7 +130,7 @@ class RandomPlayer(object):
         return move
 
 
-class MinMaxPlayer(object):
+class MinMaxPlayer:
     def __init__(self) -> None:
         self.value_cache: MutableMapping[
             int,

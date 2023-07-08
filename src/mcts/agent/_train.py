@@ -8,7 +8,6 @@ import tensorflow as tf
 import tqdm
 
 from mcts import game
-from mcts import gym
 from mcts.agent import _agent
 
 State = tf.Tensor
@@ -125,13 +124,23 @@ def train(
     )
 
 
+class ReplayWriter(Protocol):
+    def add(
+        self,
+        state: tf.Tensor,
+        move: tf.Tensor,
+        outcome: tf.Tensor,
+    ) -> None:
+        ...
+
+
 def training_game(
     model: tf.keras.Model,
     g: game.Game[tf.Tensor, tf.Tensor, tf.Tensor],
     alpha: float,
     temperature: float,
     node_count: int,
-    w: gym.ReplayWriter,
+    w: ReplayWriter,
 ) -> None:
     players = [
         _agent.TreeNodePlayer(

@@ -27,7 +27,7 @@ class LimitCondition(Protocol):
         raise NotImplementedError()
 
 
-class TimeLimit(object):
+class TimeLimit:
     """TimeLimit is a LimitCondition that expires at a certain time."""
 
     def __init__(self, end: datetime.datetime):
@@ -43,7 +43,7 @@ class TimeLimit(object):
         return datetime.datetime.now(tz=datetime.UTC) < self.end
 
 
-class CountLimit(object):
+class CountLimit:
     """CountLimit is a LimitCondition that limits the number of operations."""
 
     def __init__(self, limit: int, count: int = 0):
@@ -62,7 +62,7 @@ class CountLimit(object):
         return self.count <= self.limit
 
 
-class TreeNodePlayer(object):
+class TreeNodePlayer:
     """Player that performs MCTS and evaluates leaf nodes with an ANN.
 
     Args:
