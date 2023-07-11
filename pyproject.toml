@@ -20,6 +20,10 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 
+[project.scripts]
+mcts_generate = "mcts.gym:producer"
+mcts_train = "mcts.gym:consumer"
+
 # Dependencies for optional features of this package may be declared here.
 # For example, the dependencies which are needed for development but not
 # running the code in production have been added to the [dev] optional

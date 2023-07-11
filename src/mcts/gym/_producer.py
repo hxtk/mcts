@@ -75,7 +75,7 @@ def _load_simulator(path: str) -> game.Game[tf.Tensor, tf.Tensor, tf.Tensor]:
 
 def main() -> NoReturn:
     parser = argparse.ArgumentParser(
-        "data-generate",
+        "generate",
     )
     parser.add_argument(
         "data_path",
