@@ -29,16 +29,6 @@ class PathModelStore:
         model.save(self.path)
 
 
-def _tensor_to_feature(t: tf.Tensor) -> tf.train.Feature:
-    return tf.train.Feature(
-        bytes_list=tf.train.BytesList(
-            value=[
-                tf.io.serialize_tensor(t).numpy(),
-            ],
-        ),
-    )
-
-
 class ReplayWriter:
     def __init__(self, writer: tf.io.TFRecordWriter):
         self.writer = writer
@@ -67,13 +57,50 @@ class ReplayWriter:
         record_bytes = tf.train.Example(
             features=tf.train.Features(
                 feature={
-                    "state": _tensor_to_feature(state),
-                    "move": _tensor_to_feature(move),
-                    "outcome": _tensor_to_feature(outcome),
+                    "state": tf.train.Feature(
+                        bytes_list=tf.train.BytesList(
+                            value=[tf.io.serialize_tensor(state).numpy()],
+                        ),
+                    ),
+                    "move": tf.train.Feature(
+                        bytes_list=tf.train.BytesList(
+                            value=[tf.io.serialize_tensor(move).numpy()],
+                        ),
+                    ),
+                    "outcome": tf.train.Feature(
+                        bytes_list=tf.train.BytesList(
+                            value=[tf.io.serialize_tensor(outcome).numpy()],
+                        ),
+                    ),
                 },
             ),
         ).SerializeToString()
         self.writer.write(record_bytes)
+
+
+def _decode_fn(record_bytes: bytes) -> tf.train.Example:
+    example = tf.io.parse_single_example(
+        record_bytes,
+        features={
+            "state": tf.io.RaggedFeature(
+                tf.string,
+            ),
+            "move": tf.io.RaggedFeature(
+                tf.string,
+            ),
+            "outcome": tf.io.RaggedFeature(
+                tf.string,
+            ),
+        },
+    )
+
+    return (
+        tf.io.parse_tensor(example["state"][0], tf.float32),
+        (
+            tf.io.parse_tensor(example["move"][0], tf.float32),
+            tf.io.parse_tensor(example["outcome"][0], tf.float32),
+        ),
+    )
 
 
 class Storage:
@@ -87,31 +114,14 @@ class Storage:
 
     def writer(self) -> ReplayWriter:
         self.base_path.mkdir(exist_ok=True)
+        # We use a UUID7 for time-ordered file names that can be generated
+        # without locks or inter-process communication.
         return ReplayWriter(
             tf.io.TFRecordWriter(
                 os.fspath(
-                    self.base_path.joinpath(str(uuid6.uuid7()) + ".record"),
+                    self.base_path.joinpath(str(uuid6.uuid7()) + ".tfrecord"),
                 ),
             ),
-        )
-
-    def _decode_fn(self, record_bytes: bytes) -> tf.train.Example:
-        tf.io.parse_example(
-            record_bytes,
-            features={
-                "state": tf.io.FixedLenFeature(
-                    self.g.state_shape(),
-                    tf.float32,
-                ),
-                "move": tf.io.FixedLenFeature(
-                    self.g.policy_shape(),
-                    tf.float32,
-                ),
-                "outcome": tf.io.FixedLenFeature(
-                    [self.g.eval_size()],
-                    tf.float32,
-                ),
-            },
         )
 
     def get_dataset(self, size: int) -> tf.data.TFRecordDataset:
@@ -120,4 +130,4 @@ class Storage:
                 os.path.join(self.base_path, x)
                 for x in os.listdir(self.base_path)
             )[:size],
-        )  # .map(self._decode_fn)
+        ).map(_decode_fn)

@@ -1,3 +1,4 @@
+import typing
 from typing import Protocol
 from typing import Sequence
 from typing import Tuple
@@ -10,6 +11,7 @@ State = TypeVar("State")
 Evaluation = TypeVar("Evaluation")
 
 
+@typing.runtime_checkable
 class Game(Protocol[State, Move, Evaluation]):
     @staticmethod
     def move_mask(state: State) -> Move:

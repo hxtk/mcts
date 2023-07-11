@@ -1,6 +1,7 @@
 """Monte-Carlo Tree Search with ANN to evaluate leaf nodes."""
 import dataclasses
 from typing import Any
+from typing import Dict
 from typing import Optional
 from typing import Protocol
 from typing import Tuple
@@ -39,7 +40,7 @@ class TreeNode:
     g: game.Game[State, Move, Evaluation]
     model: tf.keras.Model
     parent: Optional["TreeNode"]
-    children: dict[Reference, "TreeNode"]
+    children: Dict[Reference, "TreeNode"]
     state: State
     policy: Move
     mask: Move

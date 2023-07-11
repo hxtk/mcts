@@ -1,12 +1,14 @@
 import argparse
+import importlib
 import multiprocessing
 import pathlib
+import sys
+import typing
 from typing import NoReturn
 
 import tensorflow as tf
 import tqdm
 
-import mcts.tictactoe.tensor as ttt
 from mcts import agent
 from mcts import game
 from mcts.gym import _storage
@@ -34,18 +36,21 @@ def build_batch(
 
 
 def run(
-    g: game.Game[tf.Tensor, tf.Tensor, tf.Tensor],
-    model_store: _storage.PathModelStore,
-    storage: _storage.Storage,
+    simulator: str,
+    data_path: pathlib.Path,
+    model_path: pathlib.Path,
     refresh_interval: int = 5000,
     alpha: float = 0.3,
     temperature: float = 1.0,
     node_count: int = 30,
 ) -> NoReturn:
+    game_module = _load_simulator(simulator)
+    storage = _storage.Storage(game_module, data_path)
+    model_store = _storage.PathModelStore(model_path, game_module)
     while True:
         model = model_store.load_model()
         build_batch(
-            g,
+            game_module,
             model,
             storage,
             refresh_interval,
@@ -53,6 +58,19 @@ def run(
             temperature,
             node_count,
         )
+
+
+def _load_simulator(path: str) -> game.Game[tf.Tensor, tf.Tensor, tf.Tensor]:
+    module, sep, name = typing.cast(str, path).partition(":")
+    if sep != "" and name == "":
+        sys.exit(1)
+
+    print(repr(module), repr(sep), repr(name))
+    mod = importlib.import_module(module)
+    game_module: game.Game = mod if sep == "" else getattr(mod, name)
+    if not isinstance(game_module, game.Game):
+        raise TypeError()
+    return game_module
 
 
 def main() -> NoReturn:
@@ -68,6 +86,15 @@ def main() -> NoReturn:
         "model_path",
         type=pathlib.Path,
         help="path from which to load models",
+    )
+    parser.add_argument(
+        "simulator",
+        type=str,
+        help=(
+            "module path of the simulator to be learned, e.g., foo.bar to "
+            "specify a module, or foo.bar:Baz to specify a class within that "
+            "module"
+        ),
     )
     parser.add_argument(
         "-R",
@@ -115,11 +142,11 @@ def main() -> NoReturn:
         help="number of processes to use for parallel execution",
     )
     args = parser.parse_args()
-    game_module = ttt
+    print(args.simulator)
     kwargs = {
-        "g": game_module,
-        "storage": _storage.Storage(game_module, args.data_path),
-        "model_store": _storage.PathModelStore(args.model_path, game_module),
+        "simulator": args.simulator,
+        "data_path": args.data_path,
+        "model_path": args.model_path,
         "refresh_interval": args.refresh,
         "alpha": args.alpha,
         "temperature": args.temperature,

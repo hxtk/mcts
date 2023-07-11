@@ -16,7 +16,7 @@ from mcts.tictactoe.tensor import _game
 
 def _hash_state(state: game.State) -> int:
     h = 0
-    for x in state.flatten():
+    for x in state.numpy().flatten():
         if int(x) == 1:
             h |= 1
         h <<= 1
@@ -144,13 +144,13 @@ class MinMaxPlayer:
             return (value / depth), move
 
         evaluation = _game.evaluate(state)
-        if evaluation is not None:
-            value = evaluation[state[2][0][0]]
+        if not tf.math.reduce_any(tf.math.is_nan(evaluation)):
+            value = evaluation[int(state[2][0][0])]
             self.value_cache[sh] = (value, None)
             return (value / depth), None
 
         values = tf.zeros_like(mask)
-        for i, x in enumerate(mask.flatten()):
+        for i, x in enumerate(mask.numpy().flatten()):
             if x == 0:
                 # Illegal moves are worse than losing.
                 values[i] = float("-inf")
